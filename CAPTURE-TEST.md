@@ -73,7 +73,7 @@ Both canaries are done. Tell whoever is running the gate. After this turn finish
 2. Canary 1 prompt + response in `.agent-logs/` — yes (separate file)
 3. Canary 2 in its own file — yes
 4. This document — yes
-5. First commit (hooks + logs + `CAPTURE-TEST.md`) — pending until requested
+5. First commit (hooks + logs + `CAPTURE-TEST.md`) — yes (`Initial Commit` on `main`)
 
 ## Failures tried / notes
 

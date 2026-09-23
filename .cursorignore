@@ -1,0 +1,36 @@
+# Optional but recommended: keeps secrets, noise, and generated output out of
+# Agent, Tab, @-mentions, and indexing. Uses .gitignore syntax.
+# https://cursor.com/docs/reference/ignore-file
+
+# Secrets and credentials (Agent respects .cursorignore; .gitignore alone may not)
+**/.env
+**/.env.*
+**/credentials.json
+**/secrets.json
+**/*.pem
+**/*.key
+**/id_rsa
+**/id_rsa.pub
+
+# Capture hook runtime state (see .gitignore)
+.cursor/hooks/state/
+
+# Session capture logs — kept in git for the assignment, excluded from AI context
+.agent-logs/
+
+# Dependencies and build output (web app / Node)
+node_modules/
+dist/
+build/
+.next/
+out/
+.turbo/
+.vercel/
+coverage/
+*.tsbuildinfo
+
+# Logs and local caches
+*.log
+.cache/
+.parcel-cache/
+.eslintcache/
