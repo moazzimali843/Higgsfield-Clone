@@ -1,0 +1,13 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+When I ask for a plan, write it in spec driven style:
+- Problem statement
+- Functional requirements
+- API contracts (inputs, outputs, data shapes)
+- Constraints
+- Edge cases and error handling
+- Acceptance criteria
+Add or remove sections if needed.

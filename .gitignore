@@ -1,0 +1,15 @@
+# Cursor capture hook — per-session locks and state (see .cursor/hooks/capture.py)
+.cursor/hooks/state/
+
+# Python (capture hook)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# macOS
+.DS_Store
+
+# Secrets (not present yet; ignore before first app commit)
+.env
+.env.*
+!.env.example
