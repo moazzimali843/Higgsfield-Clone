@@ -11,6 +11,8 @@ const startHereCopy: Record<string, string> = {
     "Browse preset looks and open one in the image composer with prompt and settings pre-filled.",
   "/image":
     "Write a prompt, choose settings, and generate labeled demo images.",
+  "/video":
+    "Same compose → generate loop with labeled demo clips for your library.",
   "/library":
     "Your generations will live here with recipes and remix — stored in the browser only.",
 };
@@ -31,7 +33,7 @@ export default function HomePage() {
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-studio-muted">
             A focused slice of the Higgsfield map: pick an effect preset or
-            start from scratch, generate images (and later video), and keep
+            start from scratch, generate images and video, and keep
             everything in your library with full recipes for remix.
           </p>
         </div>
@@ -57,7 +59,9 @@ export default function HomePage() {
                     ? "Open Effects →"
                     : item.href === "/image"
                       ? "Open Image →"
-                      : "Open Library →"
+                      : item.href === "/video"
+                        ? "Open Video →"
+                        : "Open Library →"
                 }
               />
             </li>
@@ -92,6 +96,10 @@ export default function HomePage() {
           ,{" "}
           <Link href="/image" className="text-studio-accent hover:underline">
             Image
+          </Link>
+          ,{" "}
+          <Link href="/video" className="text-studio-accent hover:underline">
+            Video
           </Link>
           ,{" "}
           <Link href="/library" className="text-studio-accent hover:underline">

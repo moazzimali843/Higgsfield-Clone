@@ -6,9 +6,16 @@ type PreviewVideoProps = {
   src: string;
   poster?: string;
   alt: string;
+  /** Grid/list thumbnails should not autoplay (many decoders + motion). Default on for hero/result. */
+  autoplay?: boolean;
 };
 
-export function PreviewVideo({ src, poster, alt }: PreviewVideoProps) {
+export function PreviewVideo({
+  src,
+  poster,
+  alt,
+  autoplay = true,
+}: PreviewVideoProps) {
   const [useStill, setUseStill] = useState(false);
 
   useEffect(() => {
@@ -34,11 +41,12 @@ export function PreviewVideo({ src, poster, alt }: PreviewVideoProps) {
     <video
       className="absolute inset-0 h-full w-full object-cover"
       src={src}
-      poster={poster}
-      autoPlay
+      poster={autoplay ? poster : undefined}
+      autoPlay={autoplay}
       muted
-      loop
+      loop={autoplay}
       playsInline
+      preload={autoplay ? "auto" : "metadata"}
       aria-label={alt}
     />
   );

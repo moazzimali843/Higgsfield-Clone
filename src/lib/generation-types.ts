@@ -11,11 +11,13 @@ export type GenerationRecipe = {
   referenceFileName?: string;
 };
 
+export type LibraryMediaType = "image" | "video";
+
 export type LibraryGeneration = {
   id: string;
   createdAt: string;
   source: GenerationSource;
-  mediaType: "image";
+  mediaType: LibraryMediaType;
   outputUrl: string;
   recipe: GenerationRecipe;
 };
@@ -31,5 +33,15 @@ export type DemoImageJobResponse = {
   source: "demo";
   outputUrl: string;
   /** True when the user picked Soul v2 but Phase 4 still returns a demo sample. */
+  usedDemoFallbackForModel: boolean;
+};
+
+export type DemoVideoJobRequest = DemoImageJobRequest;
+
+export type DemoVideoJobResponse = {
+  status: "completed";
+  source: "demo";
+  outputUrl: string;
+  /** True when the user picked a non-demo video model label. */
   usedDemoFallbackForModel: boolean;
 };
