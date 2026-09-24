@@ -4,8 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GenerationSourceBadge } from "@/components/GenerationSourceBadge";
+import { useClientHydrated } from "@/hooks/use-client-hydrated";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
+import {
+  findLibraryGenerationById,
+  libraryHrefForGeneration,
+  recipeToComposerInitialValues,
+} from "@/lib/composer-remix";
 import type {
   DemoImageJobResponse,
   HiggsfieldEstimateResponse,
@@ -66,7 +72,16 @@ export function ImageComposer({
   const [jobResult, setJobResult] = useState<ImageJobResponse | null>(null);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hydrated = useClientHydrated();
   const { items, append } = useStudioLibrary();
+  const remixGeneration =
+    hydrated && remixGenerationId
+      ? findLibraryGenerationById(items, remixGenerationId)
+      : undefined;
+  const remixAppliedRef = useRef<string | null>(null);
+
+  const recipeEffectPresetId =
+    effectPresetId ?? remixGeneration?.recipe.effectPresetId;
 
   const libraryOutputUrls = useMemo(
     () => items.map((item) => item.outputUrl),
@@ -84,6 +99,17 @@ export function ImageComposer({
     setEstimate(null);
     setEstimatePhase("idle");
     setEstimateError(null);
+  }
+
+  function clearReference() {
+    if (reference?.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(reference.previewUrl);
+    }
+    setReference(null);
+    setReferenceFile(null);
+    setReferenceError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    resetEstimate();
   }
 
   useEffect(() => {
@@ -107,7 +133,12 @@ export function ImageComposer({
     setReferenceError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     resetEstimate();
-  }
+    setJobPhase("idle");
+    setJobError(null);
+    setJobResult(null);
+    setSavedToLibrary(false);
+    remixAppliedRef.current = remixGenerationId;
+  }, [remixGenerationId, remixGeneration]);
 
   function onReferenceSelected(fileList: FileList | null) {
     const file = fileList?.[0];
