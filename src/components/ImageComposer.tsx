@@ -15,6 +15,11 @@ import {
   recipeToComposerInitialValues,
 } from "@/lib/composer-remix";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
+import {
+  findLibraryGenerationById,
+  libraryHrefForGeneration,
+  recipeToComposerInitialValues,
+} from "@/lib/composer-remix";
 import type {
   DemoImageJobResponse,
   HiggsfieldEstimateResponse,
@@ -78,6 +83,14 @@ export function ImageComposer({
   const remixAppliedRef = useRef<string | null>(null);
   const hydrated = useClientHydrated();
   const { items, append } = useStudioLibrary();
+  const remixGeneration =
+    hydrated && remixGenerationId
+      ? findLibraryGenerationById(items, remixGenerationId)
+      : undefined;
+  const remixAppliedRef = useRef<string | null>(null);
+
+  const recipeEffectPresetId =
+    effectPresetId ?? remixGeneration?.recipe.effectPresetId;
 
   const remixGeneration = useMemo(() => {
     if (!hydrated || !remixGenerationId) return undefined;
@@ -103,6 +116,17 @@ export function ImageComposer({
     setEstimate(null);
     setEstimatePhase("idle");
     setEstimateError(null);
+  }
+
+  function clearReference() {
+    if (reference?.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(reference.previewUrl);
+    }
+    setReference(null);
+    setReferenceFile(null);
+    setReferenceError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    resetEstimate();
   }
 
   useEffect(() => {
