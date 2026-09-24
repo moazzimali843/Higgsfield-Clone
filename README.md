@@ -1,63 +1,96 @@
-# Higgsfield studio (assignment)
+# Higgsfield Studio
 
-A small creative studio inspired by [Higgsfield](https://higgsfield.ai/): one compose → generate → library → remix flow, with the wider product map visible and unfinished areas marked **Coming soon**. Not a pixel copy of their marketing site.
+A browser-based creative studio inspired by [Higgsfield](https://higgsfield.ai/). Compose images and video, browse effect presets, keep a personal library with full generation recipes, and remix past work—all in one flow. This is an independent project, not an official Higgsfield product.
 
-## Status
+## What you can do
 
-| Phase | State |
-|-------|--------|
-| 0 — Prompt capture hooks | Done (`CAPTURE-TEST.md`, `.cursor/hooks.json`) |
-| 1 — Recon + product/decisions docs | Done (`recon/`, `recon/PRODUCT.md`, `docs/DECISIONS.md`) |
-| 2 — App shell (nav, Coming soon, Home) | Done |
-| 3 — Effects presets + composer handoff | Done |
-| 4 — Image demo job + library | Done |
-| 5 — Recipe + remix | Done |
-| 6 — Video demo loop | Done |
-| 7 — Optional Soul v2 + API key | Done |
-| 8 — Vercel deploy + hand-in | In progress on `feature/phase8` — see [`docs/DEPLOY.md`](docs/DEPLOY.md) |
+- **Home** — Overview and shortcuts into the studio.
+- **Effects** — Pick a preset look and open the image composer with prompt and settings already filled in.
+- **Image** — Write a prompt, adjust options, and generate images.
+- **Video** — Same compose → generate flow for short clips.
+- **Library** — See everything you created, inspect the recipe, and remix into the composer again.
 
-## What is in / out
+Several areas from the wider Higgsfield product map (Audio, 3D, Cinema Studio, and others) appear in the navigation as **Coming soon** placeholders.
 
-**In (planned):** Home, Effects presets, Image composer, browser Library, Video (demo), optional real Soul v2 image via server-side API key per job.
+**Demo mode** works out of the box with no account and no API keys. Choose the demo model in the composers to try the full loop locally or on a deployed site.
 
-**Out:** Accounts, payments, Cinema/Marketing Studio, Supercomputer, MCP console, 3D, contests, community, Genjutsu motion pipelines, full Explore clone.
+**Real generations** use your own [Higgsfield API credentials](https://higgsfield.ai/) via the **API key** control in the header (stored only in this browser tab) or optional fields on the image/video composers. Keys are never saved to the server or written to disk by the app.
 
-Details: [`recon/PRODUCT.md`](recon/PRODUCT.md). Architecture: [`docs/DECISIONS.md`](docs/DECISIONS.md).
+Your **library** is stored in this browser only (`localStorage`). Clearing site data or using another device starts a fresh library.
 
-## Run locally
+## Requirements
+
+- [Node.js](https://nodejs.org/) 18 or newer
+- npm (comes with Node)
+
+## Install and run
+
+Clone the repository, install dependencies, and start the development server:
 
 ```bash
+git clone https://github.com/moazzimali843/Higgsfield-Clone.git
+cd Higgsfield-Clone
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-**Production:** deploy on Vercel — [`docs/DEPLOY.md`](docs/DEPLOY.md). Walkthrough outline: [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md).
+### Production build (local)
 
-## Environment variables (Phase 7+, optional)
+```bash
+npm run build
+npm start
+```
 
-For **local** testing of real Higgsfield calls only — not for strangers on the public deploy:
+The app listens on [http://localhost:3000](http://localhost:3000) by default.
+
+## Suggested first session
+
+1. Open **Effects**, choose a preset, and continue to the image composer.
+2. Leave the **Demo** model selected and generate.
+3. Open **Library**, open the new item, and use **Remix** to send the recipe back to the composer.
+4. Try **Video** with the demo model and confirm the clip appears in the library.
+
+That path needs no API keys and matches what you get on a typical public deployment.
+
+## Optional: API keys for local development
+
+If you want the server to use Higgsfield credentials without pasting them in the UI every time, copy `.env.example` to `.env.local` and set:
 
 | Variable | Purpose |
 |----------|---------|
-| `HIGGSFIELD_KEY_ID` | Server-side test key id (optional) |
-| `HIGGSFIELD_KEY_SECRET` | Server-side test secret (optional) |
-| `HIGGSFIELD_CLIENT_POLL_MAX_WAIT_MS` | Browser Soul poll budget before demo fallback (optional; see `docs/DEPLOY.md`) |
-| `HIGGSFIELD_POLL_MAX_WAIT_MS` | Legacy alias for the client poll budget |
+| `HIGGSFIELD_KEY_ID` | Higgsfield API key ID |
+| `HIGGSFIELD_KEY_SECRET` | Higgsfield API secret |
+| `HIGGSFIELD_CLIENT_POLL_MAX_WAIT_MS` | How long the browser waits on real image jobs before falling back to demo (milliseconds; optional) |
 
-Copy [`.env.example`](.env.example) to `.env.local` for local overrides.
+Restart `npm run dev` after changing `.env.local`.
 
-Visitors on the live site use an optional per-request key in the UI; it is not persisted. Avoid putting your own Higgsfield keys in Vercel env on a public deploy.
+On a **public** deployment, prefer visitors’ own keys in the UI. Putting your keys in hosted environment variables can let strangers spend your API quota.
 
-## Prompt capture
+## Deploy your own copy
 
-Automatic logs: `.agent-logs/` (see [`CAPTURE-TEST.md`](CAPTURE-TEST.md)). Project hooks in [`.cursor/hooks.json`](.cursor/hooks.json).
+This app is a standard [Next.js](https://nextjs.org/) project and deploys cleanly on [Vercel](https://vercel.com/) (or any host that supports Next.js):
 
-## Recon
+1. Push the repo to GitHub (or GitLab / Bitbucket).
+2. Import the repository in Vercel and accept the **Next.js** preset.
+3. Deploy without Higgsfield env vars unless you intentionally fund API usage for all visitors.
+4. After deploy, smoke-test while logged out: image demo generate → library → remix → video demo generate.
 
-Screenshots and notes: [`recon/`](recon/). Post-login composer/Effects shots are still to be added before deep UI work — see `recon/PRODUCT.md`.
+## Scripts
 
-## License
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Development server with hot reload |
+| `npm run build` | Production build |
+| `npm start` | Run the production build |
+| `npm run lint` | ESLint |
+| `npm test` | Unit tests |
 
-Assignment / portfolio use unless otherwise specified.
+## Stack
+
+Next.js, React, TypeScript, and Tailwind CSS.
+
+## Disclaimer
+
+Higgsfield is a trademark of its respective owner. This repository is for learning and demonstration; media and APIs are subject to Higgsfield’s terms when you use their services.

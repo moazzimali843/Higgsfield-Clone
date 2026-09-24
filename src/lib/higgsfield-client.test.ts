@@ -41,6 +41,12 @@ describe("higgsfield client helpers", () => {
       true,
     );
     assert.equal(
+      isAllowedHiggsfieldStatusUrl(
+        "https://platform.higgsfield.ai/requests/abc/status",
+      ),
+      true,
+    );
+    assert.equal(
       isAllowedHiggsfieldStatusUrl("https://evil.example/requests/abc"),
       false,
     );

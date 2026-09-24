@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { StudioPageHeader } from "@/components/StudioPageHeader";
 import { VideoComposer } from "@/components/VideoComposer";
 import { getPreviewMedia } from "@/lib/preview-media";
-import { MediaPreview } from "@/components/MediaPreview";
 import { blankVideoComposerValues } from "@/lib/studio-recipe";
 
 export const metadata: Metadata = {
@@ -13,32 +13,21 @@ export default function VideoPage() {
   const heroMedia = getPreviewMedia("/video");
 
   return (
-    <div className="flex flex-col gap-10">
-      <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <p className="text-sm font-medium uppercase tracking-wide text-studio-accent">
-            Video composer
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-studio-fg sm:text-4xl">
-            Write the recipe
-          </h1>
-          <p className="mt-4 text-base leading-relaxed text-studio-muted">
-            Same compose → generate loop as Image: run a labeled demo job and
-            keep finished clips in your browser library automatically.
-          </p>
-        </div>
-        {heroMedia ? (
-          <div className="w-full max-w-xs shrink-0">
-            <MediaPreview
-              media={heroMedia}
-              motion="loop"
-              aspectClass="aspect-video"
-              showCredit={false}
-              className="ring-1 ring-studio-border"
-            />
-          </div>
-        ) : null}
-      </header>
+    <div className="flex flex-col gap-12">
+      <StudioPageHeader
+        eyebrow="Video composer"
+        title="Write the recipe"
+        description={
+          <>
+            Same compose and generate loop as Image: run Demo or Seedance 2.5 jobs
+            and keep finished clips in your browser library automatically.
+          </>
+        }
+        heroMedia={heroMedia}
+        heroAspectClass="aspect-video"
+        heroMaxWidth="max-w-md"
+        heroMotion="loop"
+      />
 
       <VideoComposer initialValues={blankVideoComposerValues} />
     </div>

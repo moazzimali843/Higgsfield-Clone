@@ -21,13 +21,13 @@ export const composerModels: ComposerModelOption[] = [
   {
     id: "demo",
     label: "Demo",
-    description: "Labeled sample output — no API key required.",
+    description: "Labeled sample output. No API key required.",
   },
   {
     id: "soul-v2-standard",
     label: "Soul v2 (standard)",
     description:
-      "Real Soul v2 render — paste your Higgsfield API key for this job only.",
+      "Real Soul v2 render. Uses your Higgsfield API key for this job.",
   },
 ];
 
@@ -43,24 +43,40 @@ export type ImageComposerInitialValues = {
   modelId: string;
 };
 
+/** Canonical Seedance id; `seedance-display` remains in older library recipes. */
+export const SEEDANCE_VIDEO_MODEL_ID = "seedance-2.5";
+export const SEEDANCE_VIDEO_MODEL_ID_LEGACY = "seedance-display";
+
 /** Small list shown in the video composer model picker. */
 export const videoComposerModels: ComposerModelOption[] = [
   {
     id: "demo",
     label: "Demo",
-    description: "Labeled sample clip — no API key required.",
+    description: "Labeled sample clip. No API key required.",
   },
   {
-    id: "seedance-display",
-    label: "Seedance (display)",
-    description: "Real video render with your API key — optional in a later phase.",
+    id: SEEDANCE_VIDEO_MODEL_ID,
+    label: "Seedance 2.5",
+    description: "Real Seedance 2.5 clip. Uses your Higgsfield API key.",
   },
 ];
+
+export function isSeedanceVideoModelId(modelId: string): boolean {
+  return (
+    modelId === SEEDANCE_VIDEO_MODEL_ID ||
+    modelId === SEEDANCE_VIDEO_MODEL_ID_LEGACY
+  );
+}
 
 export function getVideoComposerModelById(
   modelId: string,
 ): ComposerModelOption | undefined {
-  return videoComposerModels.find((m) => m.id === modelId);
+  const direct = videoComposerModels.find((m) => m.id === modelId);
+  if (direct) return direct;
+  if (modelId === SEEDANCE_VIDEO_MODEL_ID_LEGACY) {
+    return videoComposerModels.find((m) => m.id === SEEDANCE_VIDEO_MODEL_ID);
+  }
+  return undefined;
 }
 
 export type VideoComposerInitialValues = ImageComposerInitialValues;

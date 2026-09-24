@@ -111,6 +111,40 @@ export function parseSoulImagePollJson(
   };
 }
 
+export type SeedanceVideoPollFields = SoulImageJobFields & {
+  statusUrl: string;
+  clientTimedOut?: boolean;
+};
+
+/** Same shape as Soul poll JSON without reference upload fields. */
+export function parseSeedanceVideoPollJson(
+  body: unknown,
+): { ok: true; value: SeedanceVideoPollFields } | { ok: false; error: string } {
+  if (!body || typeof body !== "object") {
+    return { ok: false, error: "Request body must be a JSON object." };
+  }
+  const record = body as Record<string, unknown>;
+  const base = parseSoulImageJobFields(record);
+  if (!base.ok) return base;
+
+  const statusUrl =
+    typeof record.statusUrl === "string" ? record.statusUrl.trim() : "";
+  if (!statusUrl) {
+    return { ok: false, error: "statusUrl is required." };
+  }
+
+  const clientTimedOut = record.clientTimedOut === true;
+
+  return {
+    ok: true,
+    value: {
+      ...base.value,
+      statusUrl,
+      clientTimedOut,
+    },
+  };
+}
+
 export function parseExcludeOutputUrlsField(
   value: FormDataEntryValue | null,
 ): string[] {

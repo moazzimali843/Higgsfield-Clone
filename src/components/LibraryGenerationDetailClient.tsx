@@ -1,9 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { DemoBadge } from "@/components/DemoBadge";
+import Image from "next/image";
+import { GenerationSourceBadge } from "@/components/GenerationSourceBadge";
 import { GenerationRecipePanel } from "@/components/GenerationRecipePanel";
+import { PreviewVideo } from "@/components/PreviewVideo";
 import { useClientHydrated } from "@/hooks/use-client-hydrated";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
@@ -39,7 +40,7 @@ export function LibraryGenerationDetailClient({
   if (!hydrated) {
     return (
       <div
-        className="rounded-xl border border-studio-border bg-studio-panel p-8 text-center text-sm text-studio-muted"
+        className="studio-card p-10 text-center text-sm text-studio-muted"
         aria-busy="true"
       >
         Loading recipe from this browser…
@@ -49,7 +50,7 @@ export function LibraryGenerationDetailClient({
 
   if (!generation) {
     return (
-      <div className="mx-auto max-w-lg rounded-xl border border-studio-border bg-studio-panel p-8 text-center">
+      <div className="studio-card mx-auto max-w-lg p-10 text-center">
         <h2 className="text-lg font-medium text-studio-fg">
           Generation not found
         </h2>
@@ -59,7 +60,7 @@ export function LibraryGenerationDetailClient({
         </p>
         <Link
           href="/library"
-          className="mt-6 inline-flex rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-studio-accent/90"
+          className="studio-btn-primary mt-6"
         >
           Back to Library
         </Link>
@@ -68,31 +69,47 @@ export function LibraryGenerationDetailClient({
   }
 
   const createdAtLabel = formatCreatedAt(generation.createdAt);
+  const outputUsesRemoteCdn =
+    generation.mediaType === "image"
+      ? !generation.outputUrl.includes("images.pexels.com")
+      : !generation.outputUrl.includes("videos.pexels.com");
 
   return (
     <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
       <div className="flex flex-col gap-4">
         <div
-          className={`relative w-full overflow-hidden rounded-xl border border-studio-border bg-studio-bg ${aspectClassForRatio(
+          className={`studio-media-ring relative w-full overflow-hidden rounded-xl bg-studio-bg-elevated ${aspectClassForRatio(
             generation.recipe.aspectRatio,
           )}`}
         >
-          <Image
-            src={generation.outputUrl}
-            alt={generation.recipe.prompt.slice(0, 120) || "Generated image"}
-            fill
-            className="object-cover"
-            sizes="(max-width: 1024px) 100vw, 60vw"
-            priority
-          />
+          {generation.mediaType === "video" ? (
+            <PreviewVideo
+              src={generation.outputUrl}
+              alt={generation.recipe.prompt.slice(0, 120) || "Generated video"}
+              autoplay={false}
+            />
+          ) : (
+            <Image
+              src={generation.outputUrl}
+              alt={generation.recipe.prompt.slice(0, 120) || "Generated image"}
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 60vw"
+              priority
+              unoptimized={outputUsesRemoteCdn}
+            />
+          )}
           <div className="absolute left-3 top-3">
-            <DemoBadge />
+            <GenerationSourceBadge
+              source={generation.source}
+              mediaType={generation.mediaType}
+            />
           </div>
         </div>
       </div>
 
       <aside className="flex flex-col gap-6">
-        <div className="rounded-xl border border-studio-border bg-studio-panel p-5">
+        <div className="studio-card p-5">
           <h2 className="text-sm font-medium text-studio-fg">Recipe</h2>
           <div className="mt-4">
             <GenerationRecipePanel
@@ -103,7 +120,7 @@ export function LibraryGenerationDetailClient({
         </div>
         <Link
           href={composerHrefForRemix(generation.id)}
-          className="inline-flex justify-center rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-studio-accent/90"
+          className="studio-btn-primary justify-center"
         >
           Remix in Image composer
         </Link>
@@ -111,7 +128,7 @@ export function LibraryGenerationDetailClient({
           href="/library"
           className="text-center text-sm text-studio-accent hover:underline"
         >
-          ← Back to Library
+          Back to Library
         </Link>
       </aside>
     </div>
