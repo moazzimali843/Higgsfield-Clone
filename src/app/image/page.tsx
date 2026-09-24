@@ -32,9 +32,8 @@ export default async function ImagePage({ searchParams }: ImagePageProps) {
             Write the recipe
           </h1>
           <p className="mt-4 text-base leading-relaxed text-studio-muted">
-            Start blank or arrive from an Effect preset. Generation stays
-            disabled until Phase 4 so the flow is honest while we wire demo
-            jobs and the library.
+            Start blank or arrive from an Effect preset, then run a labeled demo
+            job. Finished images land in your browser library automatically.
           </p>
         </div>
         {heroMedia ? (
@@ -55,6 +54,9 @@ export default async function ImagePage({ searchParams }: ImagePageProps) {
         initialValues={initialValues}
         presetName={presetName}
         unknownPresetId={unknownPresetId}
+        effectPresetId={
+          presetId && !unknownPresetId ? presetId : undefined
+        }
       />
     </div>
   );

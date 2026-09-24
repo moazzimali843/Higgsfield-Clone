@@ -11,7 +11,7 @@
 **/*.key
 **/id_rsa
 **/id_rsa.pub
-
+node_modules/
 # Capture hook runtime state (see .gitignore)
 .cursor/hooks/state/
 

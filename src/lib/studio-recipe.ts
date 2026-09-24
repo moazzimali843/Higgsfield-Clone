@@ -16,7 +16,7 @@ export type ComposerModelOption = {
   description: string;
 };
 
-/** Small list shown in the composer until generation ships (Phase 4). */
+/** Small list shown in the image composer model picker. */
 export const composerModels: ComposerModelOption[] = [
   {
     id: "demo",
