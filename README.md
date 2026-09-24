@@ -8,7 +8,8 @@ A small creative studio inspired by [Higgsfield](https://higgsfield.ai/): one co
 |-------|--------|
 | 0 — Prompt capture hooks | Done (`CAPTURE-TEST.md`, `.cursor/hooks.json`) |
 | 1 — Recon + product/decisions docs | Done (`recon/`, `recon/PRODUCT.md`, `docs/DECISIONS.md`) |
-| 2+ — App | Not started yet |
+| 2 — App shell (nav, Coming soon, Home) | In progress on `feature/phase2` |
+| 3+ — Effects, generation, library | Not started yet |
 
 ## What is in / out
 
@@ -18,9 +19,7 @@ A small creative studio inspired by [Higgsfield](https://higgsfield.ai/): one co
 
 Details: [`recon/PRODUCT.md`](recon/PRODUCT.md). Architecture: [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
-## Run locally (after Phase 2)
-
-The Next.js app does not exist yet. Once Phase 2 lands:
+## Run locally
 
 ```bash
 npm install

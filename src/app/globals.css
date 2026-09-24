@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+  --studio-bg: #f8f7fc;
+  --studio-panel: #ffffff;
+  --studio-border: #e4e4e7;
+  --studio-fg: #18181b;
+  --studio-muted: #71717a;
+  --studio-accent: #6d28d9;
+}
+
+@theme inline {
+  --color-studio-bg: var(--studio-bg);
+  --color-studio-panel: var(--studio-panel);
+  --color-studio-border: var(--studio-border);
+  --color-studio-fg: var(--studio-fg);
+  --color-studio-muted: var(--studio-muted);
+  --color-studio-accent: var(--studio-accent);
+  --font-sans: var(--font-dm-sans);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--studio-bg);
+  color: var(--studio-fg);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
