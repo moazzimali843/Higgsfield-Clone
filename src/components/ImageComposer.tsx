@@ -3,10 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DemoBadge } from "@/components/DemoBadge";
+import { GenerationSourceBadge } from "@/components/GenerationSourceBadge";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
-import type { DemoImageJobResponse } from "@/lib/generation-types";
+import type {
+  DemoImageJobResponse,
+  HiggsfieldEstimateResponse,
+  ImageJobResponse,
+} from "@/lib/generation-types";
 import {
   validateReferenceImageFile,
   type ReferenceImageAttachment,
@@ -19,6 +23,8 @@ import {
   type ImageComposerInitialValues,
 } from "@/lib/studio-recipe";
 
+const SOUL_V2_MODEL_ID = "soul-v2-standard";
+
 type ImageComposerProps = {
   initialValues: ImageComposerInitialValues;
   presetName?: string;
@@ -27,6 +33,8 @@ type ImageComposerProps = {
 };
 
 type JobPhase = "idle" | "pending" | "done" | "error";
+
+type EstimatePhase = "idle" | "loading" | "done" | "error";
 
 export function ImageComposer({
   initialValues,
@@ -40,18 +48,39 @@ export function ImageComposer({
   const [reference, setReference] = useState<ReferenceImageAttachment | null>(
     null,
   );
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [referenceError, setReferenceError] = useState<string | null>(null);
+  const [apiKeyId, setApiKeyId] = useState("");
+  const [apiKeySecret, setApiKeySecret] = useState("");
+  const [estimatePhase, setEstimatePhase] = useState<EstimatePhase>("idle");
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [estimate, setEstimate] = useState<HiggsfieldEstimateResponse | null>(
+    null,
+  );
   const [jobPhase, setJobPhase] = useState<JobPhase>("idle");
   const [jobError, setJobError] = useState<string | null>(null);
-  const [jobResult, setJobResult] = useState<DemoImageJobResponse | null>(null);
+  const [jobResult, setJobResult] = useState<ImageJobResponse | null>(null);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { append } = useStudioLibrary();
+  const { items, append } = useStudioLibrary();
+
+  const libraryOutputUrls = useMemo(
+    () => items.map((item) => item.outputUrl),
+    [items],
+  );
+
+  const isSoulModel = modelId === SOUL_V2_MODEL_ID;
 
   const selectedModel = useMemo(
     () => composerModels.find((m) => m.id === modelId) ?? composerModels[0],
     [modelId],
   );
+
+  function resetEstimate() {
+    setEstimate(null);
+    setEstimatePhase("idle");
+    setEstimateError(null);
+  }
 
   useEffect(() => {
     return () => {
@@ -66,8 +95,10 @@ export function ImageComposer({
       URL.revokeObjectURL(reference.previewUrl);
     }
     setReference(null);
+    setReferenceFile(null);
     setReferenceError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    resetEstimate();
   }
 
   function onReferenceSelected(fileList: FileList | null) {
@@ -83,7 +114,61 @@ export function ImageComposer({
     }
     const previewUrl = URL.createObjectURL(file);
     setReference({ fileName: file.name, previewUrl });
+    setReferenceFile(file);
     setReferenceError(null);
+    resetEstimate();
+  }
+
+  async function onFetchEstimate() {
+    const trimmed = prompt.trim();
+    if (!trimmed) {
+      setEstimateError("Add a prompt before estimating cost.");
+      setEstimatePhase("error");
+      return;
+    }
+    if (!apiKeyId.trim() || !apiKeySecret.trim()) {
+      setEstimateError(
+        "Enter your Higgsfield API key ID and secret to see credits and USD.",
+      );
+      setEstimatePhase("error");
+      return;
+    }
+
+    setEstimatePhase("loading");
+    setEstimateError(null);
+
+    try {
+      const response = await fetch("/api/higgsfield/estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: trimmed,
+          aspectRatio,
+          apiKeyId: apiKeyId.trim(),
+          apiKeySecret: apiKeySecret.trim(),
+        }),
+      });
+      const payload = (await response.json()) as
+        | HiggsfieldEstimateResponse
+        | { error?: string };
+      if (!response.ok) {
+        const message =
+          typeof payload === "object" &&
+          payload &&
+          "error" in payload &&
+          typeof payload.error === "string"
+            ? payload.error
+            : "Could not fetch estimate.";
+        throw new Error(message);
+      }
+      setEstimate(payload as HiggsfieldEstimateResponse);
+      setEstimatePhase("done");
+    } catch (error) {
+      setEstimatePhase("error");
+      setEstimateError(
+        error instanceof Error ? error.message : "Could not fetch estimate.",
+      );
+    }
   }
 
   async function onGenerate() {
@@ -100,37 +185,72 @@ export function ImageComposer({
     setSavedToLibrary(false);
 
     try {
-      const response = await fetch("/api/demo/image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: trimmed,
-          aspectRatio,
-          modelId,
-        }),
-      });
+      let result: ImageJobResponse;
 
-      const payload = (await response.json()) as
-        | DemoImageJobResponse
-        | { error?: string };
+      if (isSoulModel) {
+        const form = new FormData();
+        form.set("prompt", trimmed);
+        form.set("aspectRatio", aspectRatio);
+        if (apiKeyId.trim()) form.set("apiKeyId", apiKeyId.trim());
+        if (apiKeySecret.trim()) form.set("apiKeySecret", apiKeySecret.trim());
+        if (referenceFile) form.set("reference", referenceFile);
+        if (libraryOutputUrls.length > 0) {
+          form.set("excludeOutputUrls", JSON.stringify(libraryOutputUrls));
+        }
 
-      if (!response.ok) {
-        const message =
-          typeof payload === "object" &&
-          payload &&
-          "error" in payload &&
-          typeof payload.error === "string"
-            ? payload.error
-            : "Demo job failed. Try again.";
-        throw new Error(message);
+        const response = await fetch("/api/higgsfield/image", {
+          method: "POST",
+          body: form,
+        });
+        const payload = (await response.json()) as ImageJobResponse | {
+          error?: string;
+        };
+        if (!response.ok) {
+          const message =
+            typeof payload === "object" &&
+            payload &&
+            "error" in payload &&
+            typeof payload.error === "string"
+              ? payload.error
+              : "Real Soul job failed. Try again.";
+          throw new Error(message);
+        }
+        result = payload as ImageJobResponse;
+      } else {
+        const response = await fetch("/api/demo/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: trimmed,
+            aspectRatio,
+            modelId,
+            excludeOutputUrls: libraryOutputUrls,
+          }),
+        });
+
+        const payload = (await response.json()) as
+          | DemoImageJobResponse
+          | { error?: string };
+
+        if (!response.ok) {
+          const message =
+            typeof payload === "object" &&
+            payload &&
+            "error" in payload &&
+            typeof payload.error === "string"
+              ? payload.error
+              : "Demo job failed. Try again.";
+          throw new Error(message);
+        }
+        result = payload as DemoImageJobResponse;
       }
 
-      const result = payload as DemoImageJobResponse;
       setJobResult(result);
       setJobPhase("done");
 
       const generation = createLibraryGeneration({
         outputUrl: result.outputUrl,
+        source: result.source,
         recipe: {
           prompt: trimmed,
           aspectRatio,
@@ -144,13 +264,15 @@ export function ImageComposer({
     } catch (error) {
       setJobPhase("error");
       setJobError(
-        error instanceof Error ? error.message : "Demo job failed. Try again.",
+        error instanceof Error ? error.message : "Generation failed. Try again.",
       );
     }
   }
 
   const generateDisabled = jobPhase === "pending";
   const resultAspectClass = aspectClassForRatio(aspectRatio);
+  const resultUsesRemoteCdn =
+    jobResult?.outputUrl.includes("images.pexels.com") === false;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,280px)]">
@@ -159,7 +281,7 @@ export function ImageComposer({
           <p className="rounded-lg border border-studio-accent/30 bg-studio-accent/10 px-4 py-3 text-sm text-studio-fg">
             Loaded preset:{" "}
             <span className="font-medium text-studio-accent">{presetName}</span>
-            . Tweak the prompt or settings, then generate a labeled demo.
+            . Tweak the prompt or settings, then generate.
           </p>
         ) : null}
         {unknownPresetId ? (
@@ -182,7 +304,10 @@ export function ImageComposer({
           <textarea
             id="composer-prompt"
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => {
+              resetEstimate();
+              setPrompt(e.target.value);
+            }}
             rows={6}
             className="mt-2 w-full resize-y rounded-lg border border-studio-border bg-studio-panel px-3 py-2 text-sm text-studio-fg placeholder:text-studio-muted focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
             placeholder="Describe the image you want…"
@@ -200,9 +325,10 @@ export function ImageComposer({
             <select
               id="composer-aspect"
               value={aspectRatio}
-              onChange={(e) =>
-                setAspectRatio(e.target.value as AspectRatio)
-              }
+              onChange={(e) => {
+                resetEstimate();
+                setAspectRatio(e.target.value as AspectRatio);
+              }}
               className="mt-2 w-full rounded-lg border border-studio-border bg-studio-panel px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
             >
               {aspectRatioOptions.map((option) => (
@@ -222,7 +348,10 @@ export function ImageComposer({
             <select
               id="composer-model"
               value={modelId}
-              onChange={(e) => setModelId(e.target.value)}
+              onChange={(e) => {
+                resetEstimate();
+                setModelId(e.target.value);
+              }}
               className="mt-2 w-full rounded-lg border border-studio-border bg-studio-panel px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
             >
               {composerModels.map((model) => (
@@ -237,13 +366,94 @@ export function ImageComposer({
           </div>
         </div>
 
+        {isSoulModel ? (
+          <div className="rounded-xl border border-studio-border bg-studio-panel/80 p-4">
+            <h2 className="text-sm font-medium text-studio-fg">
+              Higgsfield API key (this job only)
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-studio-muted">
+              Demo mode stays the default on the Demo model. For Soul v2, paste
+              your key ID and secret here — they are sent to our server for this
+              request only, never stored in the browser or git. Real renders spend
+              your credits.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="composer-api-key-id"
+                  className="text-xs font-medium text-studio-fg"
+                >
+                  Key ID
+                </label>
+                <input
+                  id="composer-api-key-id"
+                  type="password"
+                  autoComplete="off"
+                  value={apiKeyId}
+                  onChange={(e) => {
+                    resetEstimate();
+                    setApiKeyId(e.target.value);
+                  }}
+                  className="mt-1 w-full rounded-lg border border-studio-border bg-studio-bg px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="composer-api-key-secret"
+                  className="text-xs font-medium text-studio-fg"
+                >
+                  Key secret
+                </label>
+                <input
+                  id="composer-api-key-secret"
+                  type="password"
+                  autoComplete="off"
+                  value={apiKeySecret}
+                  onChange={(e) => {
+                    resetEstimate();
+                    setApiKeySecret(e.target.value);
+                  }}
+                  className="mt-1 w-full rounded-lg border border-studio-border bg-studio-bg px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-studio-muted">
+              Local dev: you can also set{" "}
+              <code className="text-studio-fg">HIGGSFIELD_KEY_ID</code> and{" "}
+              <code className="text-studio-fg">HIGGSFIELD_KEY_SECRET</code> on
+              the server instead of pasting keys in the UI.
+            </p>
+            <button
+              type="button"
+              disabled={estimatePhase === "loading"}
+              onClick={onFetchEstimate}
+              className="mt-4 rounded-lg border border-studio-border px-3 py-2 text-sm text-studio-fg hover:bg-studio-bg disabled:opacity-60"
+            >
+              {estimatePhase === "loading" ? "Estimating…" : "Estimate cost"}
+            </button>
+            {estimatePhase === "done" && estimate ? (
+              <p className="mt-2 text-xs text-studio-fg">
+                About{" "}
+                <span className="font-medium">{estimate.credits}</span> credits
+                (~${estimate.usd} USD) for this prompt.
+              </p>
+            ) : null}
+            {estimatePhase === "error" && estimateError ? (
+              <p className="mt-2 text-xs text-amber-200" role="alert">
+                {estimateError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="rounded-xl border border-dashed border-studio-border bg-studio-panel/50 p-4">
           <p className="text-sm font-medium text-studio-fg">
             Reference image (optional)
           </p>
           <p className="mt-1 text-xs text-studio-muted">
-            Attach a still for your recipe. Demo jobs use a sample output; real
-            Soul uploads ship in Phase 7.
+            {isSoulModel
+              ? "For Soul v2, we upload this server-side to Higgsfield storage and pass the public URL with your prompt."
+              : "Attach a still for your recipe. Demo jobs ignore the file and return a labeled sample."}
           </p>
           <input
             ref={fileInputRef}
@@ -291,12 +501,20 @@ export function ImageComposer({
           <div className="rounded-xl border border-studio-border bg-studio-panel p-4">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-medium text-studio-fg">Result</h2>
-              <DemoBadge />
+              <GenerationSourceBadge source={jobResult.source} />
             </div>
-            {jobResult.usedDemoFallbackForModel ? (
+            {jobResult.source === "demo" && jobResult.usedDemoFallbackForModel ? (
               <p className="mt-2 text-xs text-amber-100">
-                Soul v2 real renders need your API key in Phase 7. This output is
-                still a labeled demo sample.
+                {jobResult.fallbackReason ??
+                  "Soul v2 could not finish on the API. This is a labeled demo sample, not a paid render."}
+              </p>
+            ) : null}
+            {jobResult.source === "higgsfield" ? (
+              <p className="mt-2 text-xs text-studio-muted">
+                {jobResult.retentionNote}
+                {jobResult.usedReferenceUpload
+                  ? " Reference image was uploaded for this job."
+                  : null}
               </p>
             ) : null}
             <div
@@ -304,10 +522,11 @@ export function ImageComposer({
             >
               <Image
                 src={jobResult.outputUrl}
-                alt="Demo generation result"
+                alt="Generation result"
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 400px"
+                unoptimized={resultUsesRemoteCdn}
               />
             </div>
             {savedToLibrary ? (
@@ -332,8 +551,9 @@ export function ImageComposer({
         <div className="rounded-xl border border-studio-border bg-studio-panel p-4">
           <h2 className="text-sm font-medium text-studio-fg">Generate</h2>
           <p className="mt-2 text-xs leading-relaxed text-studio-muted">
-            Demo jobs run on our server with a short pending state, then return a
-            labeled sample image stored in your browser library.
+            {isSoulModel
+              ? "Soul v2 runs on Higgsfield with your key. If the API fails, you get a labeled demo fallback — never a fake paid render."
+              : "Demo jobs run on our server with a short pending state, then return a labeled sample image stored in your browser library."}
           </p>
           <button
             type="button"
@@ -342,12 +562,20 @@ export function ImageComposer({
             aria-describedby="generate-phase-note"
             className="mt-4 w-full rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-studio-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {jobPhase === "pending" ? "Generating…" : "Generate demo"}
+            {jobPhase === "pending"
+              ? "Generating…"
+              : isSoulModel
+                ? "Generate (Soul v2)"
+                : "Generate demo"}
           </button>
           <p id="generate-phase-note" className="mt-2 text-xs text-studio-muted">
             {jobPhase === "pending"
-              ? "Pending — usually a couple of seconds."
-              : "No API key required. Outputs are clearly marked Demo."}
+              ? isSoulModel
+                ? "Submitting to Higgsfield and polling — this can take a minute."
+                : "Pending — usually a couple of seconds."
+              : isSoulModel
+                ? "Requires a key in the form or server env vars."
+                : "No API key required. Outputs are clearly marked Demo."}
           </p>
           {jobPhase === "error" && jobError ? (
             <p className="mt-2 text-xs text-amber-200" role="alert">

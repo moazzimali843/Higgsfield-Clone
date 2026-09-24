@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ImageComposer } from "@/components/ImageComposer";
-import { resolveComposerFromPresetParam } from "@/lib/composer-initial-values";
+import { resolveComposerPageState } from "@/lib/composer-initial-values";
 import { firstQueryValue } from "@/lib/search-params";
 import { getPreviewMedia } from "@/lib/preview-media";
 import { MediaPreview } from "@/components/MediaPreview";
@@ -11,14 +11,23 @@ export const metadata: Metadata = {
 };
 
 type ImagePageProps = {
-  searchParams: Promise<{ preset?: string | string[] }>;
+  searchParams: Promise<{
+    preset?: string | string[];
+    prompt?: string | string[];
+    aspectRatio?: string | string[];
+    modelId?: string | string[];
+  }>;
 };
 
 export default async function ImagePage({ searchParams }: ImagePageProps) {
-  const { preset: presetRaw } = await searchParams;
-  const presetId = firstQueryValue(presetRaw);
+  const params = await searchParams;
+  const presetId = firstQueryValue(params.preset);
   const { initialValues, presetName, unknownPresetId } =
-    resolveComposerFromPresetParam(presetId);
+    resolveComposerPageState(presetId, {
+      prompt: firstQueryValue(params.prompt),
+      aspectRatio: firstQueryValue(params.aspectRatio),
+      modelId: firstQueryValue(params.modelId),
+    });
   const heroMedia = getPreviewMedia("/image");
 
   return (
@@ -50,7 +59,7 @@ export default async function ImagePage({ searchParams }: ImagePageProps) {
       </header>
 
       <ImageComposer
-        key={presetId ?? "blank"}
+        key={`${presetId ?? "blank"}-${initialValues.prompt.slice(0, 32)}-${initialValues.modelId}`}
         initialValues={initialValues}
         presetName={presetName}
         unknownPresetId={unknownPresetId}

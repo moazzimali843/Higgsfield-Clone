@@ -7,11 +7,18 @@ import {
 } from "@/lib/demo-image-job";
 
 describe("demo image job", () => {
-  it("picks a stable output for the same prompt", () => {
-    const a = pickDemoOutputUrl("neon portrait", "16:9");
-    const b = pickDemoOutputUrl("neon portrait", "16:9");
-    assert.equal(a, b);
-    assert.match(a, /^https:\/\/images\.pexels\.com\//);
+  it("picks a random output for the aspect ratio", () => {
+    const url = pickDemoOutputUrl("16:9", { random: () => 0 });
+    assert.match(url, /^https:\/\/images\.pexels\.com\//);
+  });
+
+  it("avoids URLs already in the library when possible", () => {
+    const first = pickDemoOutputUrl("1:1", { random: () => 0 });
+    const second = pickDemoOutputUrl("1:1", {
+      excludeUrls: [first],
+      random: () => 0,
+    });
+    assert.notEqual(first, second);
   });
 
   it("rejects empty prompts", () => {
@@ -30,5 +37,16 @@ describe("demo image job", () => {
     const job = runDemoImageJob(parsed.value);
     assert.equal(job.source, "demo");
     assert.equal(job.usedDemoFallbackForModel, true);
+  });
+
+  it("parses excludeOutputUrls from the request body", () => {
+    const parsed = parseDemoImageJobRequest({
+      prompt: "hello",
+      aspectRatio: "1:1",
+      excludeOutputUrls: ["https://images.pexels.com/photos/1/a.jpeg"],
+    });
+    assert.equal(parsed.ok, true);
+    if (!parsed.ok) return;
+    assert.equal(parsed.value.excludeOutputUrls?.length, 1);
   });
 });
