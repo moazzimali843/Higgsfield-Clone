@@ -32,6 +32,7 @@ type ImageComposerProps = {
   presetName?: string;
   unknownPresetId?: string;
   effectPresetId?: string;
+  remixGenerationId?: string;
 };
 
 type JobPhase = "idle" | "pending" | "done" | "error";
@@ -43,6 +44,7 @@ export function ImageComposer({
   presetName,
   unknownPresetId,
   effectPresetId,
+  remixGenerationId,
 }: ImageComposerProps) {
   const [prompt, setPrompt] = useState(initialValues.prompt);
   const [aspectRatio, setAspectRatio] = useState(initialValues.aspectRatio);
@@ -92,10 +94,14 @@ export function ImageComposer({
     };
   }, [reference]);
 
-  function clearReference() {
-    if (reference?.previewUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(reference.previewUrl);
-    }
+  useEffect(() => {
+    if (!remixGenerationId || !remixGeneration) return;
+    if (remixAppliedRef.current === remixGenerationId) return;
+
+    const values = recipeToComposerInitialValues(remixGeneration.recipe);
+    setPrompt(values.prompt);
+    setAspectRatio(values.aspectRatio);
+    setModelId(values.modelId);
     setReference(null);
     setReferenceFile(null);
     setReferenceError(null);
@@ -253,7 +259,7 @@ export function ImageComposer({
           prompt: trimmed,
           aspectRatio,
           modelId,
-          effectPresetId,
+          effectPresetId: recipeEffectPresetId,
           referenceFileName: reference?.fileName,
         },
       });
@@ -289,6 +295,34 @@ export function ImageComposer({
             <Link href="/effects" className="text-studio-accent hover:underline">
               Browse Effects
             </Link>
+          </p>
+        ) : null}
+        {hydrated && remixGenerationId && !remixGeneration ? (
+          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            No library item with that id.{" "}
+            <Link href="/library" className="text-studio-accent hover:underline">
+              Open Library
+            </Link>{" "}
+            or start from a blank composer.
+          </p>
+        ) : null}
+        {remixGeneration ? (
+          <p className="rounded-lg border border-studio-accent/30 bg-studio-accent/10 px-4 py-3 text-sm text-studio-fg">
+            Remix loaded from your{" "}
+            <Link
+              href={libraryHrefForGeneration(remixGeneration.id)}
+              className="font-medium text-studio-accent hover:underline"
+            >
+              library recipe
+            </Link>
+            . Tweak anything, then generate again.
+            {remixGeneration.recipe.referenceFileName ? (
+              <span className="mt-2 block text-xs text-studio-muted">
+                Re-attach reference &ldquo;
+                {remixGeneration.recipe.referenceFileName}&rdquo; if you still
+                want it in the recipe.
+              </span>
+            ) : null}
           </p>
         ) : null}
 

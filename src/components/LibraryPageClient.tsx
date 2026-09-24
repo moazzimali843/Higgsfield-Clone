@@ -20,7 +20,19 @@ function formatCreatedAt(iso: string): string {
 }
 
 export function LibraryPageClient() {
+  const hydrated = useClientHydrated();
   const { items } = useStudioLibrary();
+
+  if (!hydrated) {
+    return (
+      <div
+        className="rounded-xl border border-studio-border bg-studio-panel p-8 text-center text-sm text-studio-muted"
+        aria-busy="true"
+      >
+        Loading your browser library…
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
