@@ -40,7 +40,7 @@ export function PlaceholderStudioPage({
         href="/"
         className="mt-8 inline-block text-sm text-studio-accent hover:underline"
       >
-        ← Home
+        Back to Home
       </Link>
     </div>
   );

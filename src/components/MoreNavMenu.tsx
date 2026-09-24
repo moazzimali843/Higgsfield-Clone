@@ -39,10 +39,10 @@ export function MoreNavMenu() {
       <button
         type="button"
         className={[
-          "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+          "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
           isComingSoonActive || open
-            ? "bg-studio-accent/15 text-studio-accent"
-            : "text-studio-muted hover:bg-zinc-100 hover:text-studio-fg",
+            ? "bg-studio-accent/20 text-studio-accent-bright ring-1 ring-studio-accent/30"
+            : "text-studio-muted hover:bg-white/5 hover:text-studio-fg",
         ].join(" ")}
         aria-expanded={open}
         aria-haspopup="menu"
@@ -65,7 +65,7 @@ export function MoreNavMenu() {
         <div
           id={MENU_PANEL_ID}
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border border-studio-border bg-studio-panel p-2 shadow-xl shadow-black/40"
+          className="studio-dropdown-enter absolute right-0 z-50 mt-2 w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border border-studio-border-subtle bg-studio-bg-elevated p-2 shadow-2xl shadow-black/50"
         >
           <p className="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-studio-muted">
             Coming soon
@@ -81,8 +81,8 @@ export function MoreNavMenu() {
                     className={[
                       "flex items-center justify-between gap-2 rounded-lg px-2 py-2 text-sm transition-colors",
                       isActive
-                        ? "bg-studio-accent/15 text-studio-accent"
-                        : "text-studio-fg hover:bg-zinc-100",
+                        ? "bg-studio-accent/15 text-studio-accent-bright"
+                        : "text-studio-fg hover:bg-white/5",
                     ].join(" ")}
                     onClick={close}
                   >

@@ -2,6 +2,13 @@ import type { AspectRatio } from "@/lib/studio-recipe";
 
 export const HIGGSFIELD_API_BASE = "https://api.higgsfield.ai";
 export const SOUL_V2_STANDARD_MODEL_PATH = "higgsfield-ai/soul/v2/standard";
+export const SEEDANCE_TEXT_TO_VIDEO_MODEL_PATH =
+  "bytedance/seedance-2.5/text-to-video";
+
+const ALLOWED_HIGGSFIELD_STATUS_HOSTS = new Set([
+  "api.higgsfield.ai",
+  "platform.higgsfield.ai",
+]);
 
 export const OUTPUT_RETENTION_NOTE =
   "Higgsfield hosts this file for at least 7 days. Download it if you need a permanent copy.";
@@ -73,7 +80,8 @@ export function isAllowedHiggsfieldStatusUrl(statusUrl: string): boolean {
   try {
     const parsed = new URL(statusUrl);
     return (
-      parsed.protocol === "https:" && parsed.hostname === "api.higgsfield.ai"
+      parsed.protocol === "https:" &&
+      ALLOWED_HIGGSFIELD_STATUS_HOSTS.has(parsed.hostname)
     );
   } catch {
     return false;
@@ -331,4 +339,43 @@ export async function uploadReferenceToHiggsfield(
 export function firstImageUrl(result: HiggsfieldStatusResponse): string | null {
   const url = result.images?.[0]?.url;
   return typeof url === "string" && url.length > 0 ? url : null;
+}
+
+export function firstVideoUrl(result: HiggsfieldStatusResponse): string | null {
+  const url = result.video?.url;
+  return typeof url === "string" && url.length > 0 ? url : null;
+}
+
+export function buildSeedanceTextToVideoBody(
+  prompt: string,
+  aspectRatio: AspectRatio,
+): Record<string, unknown> {
+  return {
+    prompt,
+    aspect_ratio: aspectRatio,
+    resolution: "720p",
+    duration: 5,
+    output_format: "mp4",
+    generate_audio: false,
+  };
+}
+
+export async function submitSeedanceTextToVideo(
+  creds: HiggsfieldCredentials,
+  body: Record<string, unknown>,
+): Promise<
+  | { ok: true; submit: HiggsfieldSubmitResponse }
+  | { ok: false; status: number; message: string }
+> {
+  const result = await higgsfieldFetchJson<HiggsfieldSubmitResponse>(
+    `${HIGGSFIELD_API_BASE}/${SEEDANCE_TEXT_TO_VIDEO_MODEL_PATH}`,
+    creds,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!result.ok) return result;
+  return { ok: true, submit: result.data };
 }
