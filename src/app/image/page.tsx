@@ -63,6 +63,7 @@ export default async function ImagePage({ searchParams }: ImagePageProps) {
         initialValues={initialValues}
         presetName={presetName}
         unknownPresetId={unknownPresetId}
+        remixGenerationId={remixId}
         effectPresetId={
           presetId && !unknownPresetId ? presetId : undefined
         }
