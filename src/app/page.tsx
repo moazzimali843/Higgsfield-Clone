@@ -8,7 +8,7 @@ const startHere = liveNav.filter((item) => item.href !== "/");
 
 const startHereCopy: Record<string, string> = {
   "/effects":
-    "Browse preset looks and open one in the image composer. Gallery ships in Phase 3.",
+    "Browse preset looks and open one in the image composer with prompt and settings pre-filled.",
   "/image":
     "Write a prompt, choose settings, and generate. Demo jobs and library land in Phase 4.",
   "/library":

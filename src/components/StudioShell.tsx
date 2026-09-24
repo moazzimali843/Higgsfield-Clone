@@ -19,7 +19,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="border-b border-studio-border bg-studio-panel/95 shadow-sm backdrop-blur-md">
+      <header className="relative z-50 border-b border-studio-border bg-studio-panel/95 shadow-sm backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link href="/" className="group flex items-center gap-2">
@@ -64,7 +64,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <main className="relative z-0 mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {children}
       </main>
 

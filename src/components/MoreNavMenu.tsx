@@ -65,7 +65,7 @@ export function MoreNavMenu() {
         <div
           id={MENU_PANEL_ID}
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-[min(100vw-2rem,20rem)] rounded-xl border border-studio-border bg-studio-panel p-2 shadow-xl shadow-black/40"
+          className="absolute right-0 z-50 mt-2 w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border border-studio-border bg-studio-panel p-2 shadow-xl shadow-black/40"
         >
           <p className="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-studio-muted">
             Coming soon
