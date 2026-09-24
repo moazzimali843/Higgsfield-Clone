@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { GenerationSourceBadge } from "@/components/GenerationSourceBadge";
 import { PreviewVideo } from "@/components/PreviewVideo";
+import { useClientHydrated } from "@/hooks/use-client-hydrated";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
 import { imageComposerHrefFromRecipe } from "@/lib/composer-remix-url";

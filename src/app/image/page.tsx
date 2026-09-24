@@ -16,12 +16,14 @@ type ImagePageProps = {
     prompt?: string | string[];
     aspectRatio?: string | string[];
     modelId?: string | string[];
+    remix?: string | string[];
   }>;
 };
 
 export default async function ImagePage({ searchParams }: ImagePageProps) {
   const params = await searchParams;
-  const presetId = firstQueryValue(params.preset);
+  const remixId = firstQueryValue(params.remix);
+  const presetId = remixId ? undefined : firstQueryValue(params.preset);
   const { initialValues, presetName, unknownPresetId } =
     resolveComposerPageState(presetId, {
       prompt: firstQueryValue(params.prompt),
@@ -59,7 +61,10 @@ export default async function ImagePage({ searchParams }: ImagePageProps) {
       </header>
 
       <ImageComposer
-        key={`${presetId ?? "blank"}-${initialValues.prompt.slice(0, 32)}-${initialValues.modelId}`}
+        key={
+          remixId ??
+          `${presetId ?? "blank"}-${initialValues.prompt.slice(0, 32)}-${initialValues.modelId}`
+        }
         initialValues={initialValues}
         presetName={presetName}
         unknownPresetId={unknownPresetId}
