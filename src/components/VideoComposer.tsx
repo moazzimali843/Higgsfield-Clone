@@ -3,18 +3,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DemoBadge } from "@/components/DemoBadge";
+import { GenerationSourceBadge } from "@/components/GenerationSourceBadge";
+import { MotionReveal } from "@/components/MotionReveal";
+import { useHiggsfieldApiKey } from "@/components/HiggsfieldApiKeyProvider";
 import { PreviewVideo } from "@/components/PreviewVideo";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
-import type { DemoVideoJobResponse } from "@/lib/generation-types";
+import type { DemoVideoJobResponse, VideoJobResponse } from "@/lib/generation-types";
 import {
   validateReferenceImageFile,
   type ReferenceImageAttachment,
 } from "@/lib/reference-image";
+import { runSeedanceVideoInBrowser } from "@/lib/seedance-video-browser";
 import { createLibraryGeneration } from "@/lib/studio-library";
 import {
   aspectRatioOptions,
+  getVideoComposerModelById,
+  isSeedanceVideoModelId,
+  SEEDANCE_VIDEO_MODEL_ID,
+  SEEDANCE_VIDEO_MODEL_ID_LEGACY,
   videoComposerModels,
   type AspectRatio,
   type VideoComposerInitialValues,
@@ -36,16 +43,24 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
   const [referenceError, setReferenceError] = useState<string | null>(null);
   const [jobPhase, setJobPhase] = useState<JobPhase>("idle");
   const [jobError, setJobError] = useState<string | null>(null);
-  const [jobResult, setJobResult] = useState<DemoVideoJobResponse | null>(null);
+  const [jobResult, setJobResult] = useState<VideoJobResponse | null>(null);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { append } = useStudioLibrary();
+  const { apiKeyId, apiKeySecret } = useHiggsfieldApiKey();
+
+  const isSeedanceModel = isSeedanceVideoModelId(modelId);
 
   const selectedModel = useMemo(
-    () =>
-      videoComposerModels.find((m) => m.id === modelId) ?? videoComposerModels[0],
+    () => getVideoComposerModelById(modelId) ?? videoComposerModels[0],
     [modelId],
   );
+
+  useEffect(() => {
+    if (modelId === SEEDANCE_VIDEO_MODEL_ID_LEGACY) {
+      setModelId(SEEDANCE_VIDEO_MODEL_ID);
+    }
+  }, [modelId]);
 
   useEffect(() => {
     return () => {
@@ -94,38 +109,63 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
     setSavedToLibrary(false);
 
     try {
-      const response = await fetch("/api/demo/video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let result: VideoJobResponse;
+
+      if (isSeedanceModel) {
+        const keyId = apiKeyId.trim();
+        const keySecret = apiKeySecret.trim();
+        result = await runSeedanceVideoInBrowser({
           prompt: trimmed,
           aspectRatio,
-          modelId,
-        }),
-      });
+          apiKeyId: keyId,
+          apiKeySecret: keySecret,
+          submit: () =>
+            fetch("/api/higgsfield/video", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                prompt: trimmed,
+                aspectRatio,
+                apiKeyId: keyId || undefined,
+                apiKeySecret: keySecret || undefined,
+              }),
+            }),
+        });
+      } else {
+        const response = await fetch("/api/demo/video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: trimmed,
+            aspectRatio,
+            modelId,
+          }),
+        });
 
-      const payload = (await response.json()) as
-        | DemoVideoJobResponse
-        | { error?: string };
+        const payload = (await response.json()) as
+          | DemoVideoJobResponse
+          | { error?: string };
 
-      if (!response.ok) {
-        const message =
-          typeof payload === "object" &&
-          payload &&
-          "error" in payload &&
-          typeof payload.error === "string"
-            ? payload.error
-            : "Demo job failed. Try again.";
-        throw new Error(message);
+        if (!response.ok) {
+          const message =
+            typeof payload === "object" &&
+            payload &&
+            "error" in payload &&
+            typeof payload.error === "string"
+              ? payload.error
+              : "Demo job failed. Try again.";
+          throw new Error(message);
+        }
+        result = payload as DemoVideoJobResponse;
       }
 
-      const result = payload as DemoVideoJobResponse;
       setJobResult(result);
       setJobPhase("done");
 
       const generation = createLibraryGeneration({
         mediaType: "video",
         outputUrl: result.outputUrl,
+        source: result.source,
         recipe: {
           prompt: trimmed,
           aspectRatio,
@@ -148,7 +188,7 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,280px)]">
-      <div className="flex flex-col gap-6">
+      <MotionReveal className="flex flex-col gap-6">
         <div>
           <label
             htmlFor="video-composer-prompt"
@@ -161,7 +201,7 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={6}
-            className="mt-2 w-full resize-y rounded-lg border border-studio-border bg-studio-panel px-3 py-2 text-sm text-studio-fg placeholder:text-studio-muted focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+            className="studio-input mt-2 resize-y"
             placeholder="Describe the clip you want…"
           />
         </div>
@@ -180,7 +220,7 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
               onChange={(e) =>
                 setAspectRatio(e.target.value as AspectRatio)
               }
-              className="mt-2 w-full rounded-lg border border-studio-border bg-studio-panel px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+              className="studio-input mt-2"
             >
               {aspectRatioOptions.map((option) => (
                 <option key={option} value={option}>
@@ -200,7 +240,7 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
               id="video-composer-model"
               value={modelId}
               onChange={(e) => setModelId(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-studio-border bg-studio-panel px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+              className="studio-input mt-2"
             >
               {videoComposerModels.map((model) => (
                 <option key={model.id} value={model.id}>
@@ -214,13 +254,13 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-dashed border-studio-border bg-studio-panel/50 p-4">
+        <div className="studio-card border-dashed p-5">
           <p className="text-sm font-medium text-studio-fg">
             Reference image (optional)
           </p>
           <p className="mt-1 text-xs text-studio-muted">
-            Attach a still for your recipe. Demo jobs return a labeled sample
-            clip; real video models ship in a later phase.
+            Attach a still for your recipe. Demo jobs return a labeled sample clip.
+            Seedance 2.5 is text-to-video only in this app (reference is not sent).
           </p>
           <input
             ref={fileInputRef}
@@ -230,7 +270,7 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
             onChange={(e) => onReferenceSelected(e.target.files)}
           />
           {referenceError ? (
-            <p className="mt-2 text-xs text-amber-200" role="alert">
+            <p className="mt-2 text-xs studio-alert-warning-xs" role="alert">
               {referenceError}
             </p>
           ) : null}
@@ -263,15 +303,20 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
         </div>
 
         {jobPhase === "done" && jobResult ? (
-          <div className="rounded-xl border border-studio-border bg-studio-panel p-4">
+          <div className="studio-card p-5">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-medium text-studio-fg">Result</h2>
-              <DemoBadge />
+              <GenerationSourceBadge source={jobResult.source} mediaType="video" />
             </div>
-            {jobResult.usedDemoFallbackForModel ? (
-              <p className="mt-2 text-xs text-amber-100">
-                Real video models need a verified API path in a later phase.
-                This output is still a labeled demo sample.
+            {jobResult.source === "demo" && jobResult.usedDemoFallbackForModel ? (
+              <p className="mt-2 text-xs studio-alert-warning-xs">
+                {jobResult.fallbackReason ??
+                  "Seedance 2.5 could not finish on the API. This is a labeled demo sample, not a paid render."}
+              </p>
+            ) : null}
+            {jobResult.source === "higgsfield" ? (
+              <p className="mt-2 text-xs text-studio-muted">
+                {jobResult.retentionNote}
               </p>
             ) : null}
             <div
@@ -291,41 +336,58 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
                 .
               </p>
             ) : (
-              <p className="mt-3 text-xs text-amber-200" role="status">
-                Result shown here, but browser storage was full or blocked — not
+              <p className="mt-3 text-xs studio-alert-warning-xs" role="status">
+                Result shown here, but browser storage was full or blocked. Not
                 saved to Library.
               </p>
             )}
           </div>
         ) : null}
-      </div>
+      </MotionReveal>
 
-      <aside className="flex flex-col gap-4 lg:sticky lg:top-8 lg:self-start">
-        <div className="rounded-xl border border-studio-border bg-studio-panel p-4">
-          <h2 className="text-sm font-medium text-studio-fg">Generate</h2>
+      <MotionReveal
+        className="flex flex-col gap-4 lg:self-start"
+        delay={140}
+      >
+        <div className="studio-card p-5 lg:sticky lg:top-24">
+          <h2 className="studio-display text-sm font-semibold text-studio-fg">Generate</h2>
           <p className="mt-2 text-xs leading-relaxed text-studio-muted">
-            Demo jobs run on our server with a short pending state, then return a
-            labeled sample clip stored in your browser library.
+            {isSeedanceModel
+              ? "Seedance 2.5 runs on Higgsfield with your key. If the API fails, you get a labeled demo fallback, never a fake paid render."
+              : "Demo jobs run on our server with a short pending state, then return a labeled sample clip stored in your browser library."}
           </p>
           <button
             type="button"
             disabled={generateDisabled}
             onClick={onGenerate}
             aria-describedby="video-generate-phase-note"
-            className="mt-4 w-full rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-studio-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className={[
+              "studio-btn-primary mt-4 w-full disabled:cursor-not-allowed disabled:opacity-60",
+              jobPhase === "pending" ? "studio-btn-pending" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
-            {jobPhase === "pending" ? "Generating…" : "Generate demo"}
+            {jobPhase === "pending"
+              ? "Generating…"
+              : isSeedanceModel
+                ? "Generate (Seedance 2.5)"
+                : "Generate demo"}
           </button>
           <p
             id="video-generate-phase-note"
             className="mt-2 text-xs text-studio-muted"
           >
             {jobPhase === "pending"
-              ? "Pending — usually a couple of seconds."
-              : "No API key required. Outputs are clearly marked Demo."}
+              ? isSeedanceModel
+                ? "Submitting to Higgsfield and polling. Video jobs can take a few minutes."
+                : "Pending. Usually a couple of seconds."
+              : isSeedanceModel
+                ? "Requires a key in the header panel, composer, or server env vars."
+                : "No API key required. Outputs are clearly marked Demo."}
           </p>
           {jobPhase === "error" && jobError ? (
-            <p className="mt-2 text-xs text-amber-200" role="alert">
+            <p className="mt-2 text-xs studio-alert-warning-xs" role="alert">
               {jobError}
             </p>
           ) : null}
@@ -334,9 +396,9 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
           href="/image"
           className="text-center text-sm text-studio-accent hover:underline"
         >
-          ← Image composer
+          Back to Image composer
         </Link>
-      </aside>
+      </MotionReveal>
     </div>
   );
 }

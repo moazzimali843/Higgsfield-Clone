@@ -4,8 +4,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GenerationSourceBadge } from "@/components/GenerationSourceBadge";
+import { MotionReveal } from "@/components/MotionReveal";
+import { ShimmerBlock } from "@/components/ShimmerBlock";
+import { useHiggsfieldApiKey } from "@/components/HiggsfieldApiKeyProvider";
 import { useClientHydrated } from "@/hooks/use-client-hydrated";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
+import {
+  findLibraryGenerationById,
+  libraryHrefForGeneration,
+  recipeToComposerInitialValues,
+} from "@/lib/composer-remix";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
 import {
   findLibraryGenerationById,
@@ -60,8 +68,8 @@ export function ImageComposer({
   );
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [referenceError, setReferenceError] = useState<string | null>(null);
-  const [apiKeyId, setApiKeyId] = useState("");
-  const [apiKeySecret, setApiKeySecret] = useState("");
+  const { apiKeyId, setApiKeyId, apiKeySecret, setApiKeySecret } =
+    useHiggsfieldApiKey();
   const [estimatePhase, setEstimatePhase] = useState<EstimatePhase>("idle");
   const [estimateError, setEstimateError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<HiggsfieldEstimateResponse | null>(
@@ -72,6 +80,7 @@ export function ImageComposer({
   const [jobResult, setJobResult] = useState<ImageJobResponse | null>(null);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const remixAppliedRef = useRef<string | null>(null);
   const hydrated = useClientHydrated();
   const { items, append } = useStudioLibrary();
   const remixGeneration =
@@ -82,6 +91,14 @@ export function ImageComposer({
 
   const recipeEffectPresetId =
     effectPresetId ?? remixGeneration?.recipe.effectPresetId;
+
+  const remixGeneration = useMemo(() => {
+    if (!hydrated || !remixGenerationId) return undefined;
+    return findLibraryGenerationById(items, remixGenerationId);
+  }, [hydrated, remixGenerationId, items]);
+
+  const recipeEffectPresetId =
+    remixGeneration?.recipe.effectPresetId ?? effectPresetId;
 
   const libraryOutputUrls = useMemo(
     () => items.map((item) => item.outputUrl),
@@ -133,10 +150,6 @@ export function ImageComposer({
     setReferenceError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     resetEstimate();
-    setJobPhase("idle");
-    setJobError(null);
-    setJobResult(null);
-    setSavedToLibrary(false);
     remixAppliedRef.current = remixGenerationId;
   }, [remixGenerationId, remixGeneration]);
 
@@ -155,6 +168,17 @@ export function ImageComposer({
     setReference({ fileName: file.name, previewUrl });
     setReferenceFile(file);
     setReferenceError(null);
+    resetEstimate();
+  }
+
+  function clearReference() {
+    if (reference?.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(reference.previewUrl);
+    }
+    setReference(null);
+    setReferenceFile(null);
+    setReferenceError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     resetEstimate();
   }
 
@@ -311,16 +335,16 @@ export function ImageComposer({
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,280px)]">
-      <div className="flex flex-col gap-6">
+      <MotionReveal className="flex flex-col gap-6">
         {presetName ? (
-          <p className="rounded-lg border border-studio-accent/30 bg-studio-accent/10 px-4 py-3 text-sm text-studio-fg">
+          <p className="studio-alert-info">
             Loaded preset:{" "}
             <span className="font-medium text-studio-accent">{presetName}</span>
             . Tweak the prompt or settings, then generate.
           </p>
         ) : null}
         {unknownPresetId ? (
-          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <p className="studio-alert-warning">
             No preset named &ldquo;{unknownPresetId}&rdquo;. Starting from a
             blank composer instead.{" "}
             <Link href="/effects" className="text-studio-accent hover:underline">
@@ -329,7 +353,7 @@ export function ImageComposer({
           </p>
         ) : null}
         {hydrated && remixGenerationId && !remixGeneration ? (
-          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <p className="studio-alert-warning">
             No library item with that id.{" "}
             <Link href="/library" className="text-studio-accent hover:underline">
               Open Library
@@ -338,7 +362,7 @@ export function ImageComposer({
           </p>
         ) : null}
         {remixGeneration ? (
-          <p className="rounded-lg border border-studio-accent/30 bg-studio-accent/10 px-4 py-3 text-sm text-studio-fg">
+          <p className="studio-alert-info">
             Remix loaded from your{" "}
             <Link
               href={libraryHrefForGeneration(remixGeneration.id)}
@@ -372,7 +396,7 @@ export function ImageComposer({
               setPrompt(e.target.value);
             }}
             rows={6}
-            className="mt-2 w-full resize-y rounded-lg border border-studio-border bg-studio-panel px-3 py-2 text-sm text-studio-fg placeholder:text-studio-muted focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+            className="studio-input mt-2 resize-y"
             placeholder="Describe the image you want…"
           />
         </div>
@@ -392,7 +416,7 @@ export function ImageComposer({
                 resetEstimate();
                 setAspectRatio(e.target.value as AspectRatio);
               }}
-              className="mt-2 w-full rounded-lg border border-studio-border bg-studio-panel px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+              className="studio-input mt-2"
             >
               {aspectRatioOptions.map((option) => (
                 <option key={option} value={option}>
@@ -415,7 +439,7 @@ export function ImageComposer({
                 resetEstimate();
                 setModelId(e.target.value);
               }}
-              className="mt-2 w-full rounded-lg border border-studio-border bg-studio-panel px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+              className="studio-input mt-2"
             >
               {composerModels.map((model) => (
                 <option key={model.id} value={model.id}>
@@ -430,15 +454,14 @@ export function ImageComposer({
         </div>
 
         {isSoulModel ? (
-          <div className="rounded-xl border border-studio-border bg-studio-panel/80 p-4">
+          <div className="studio-card p-5">
             <h2 className="text-sm font-medium text-studio-fg">
-              Higgsfield API key (this job only)
+              Higgsfield API key
             </h2>
             <p className="mt-1 text-xs leading-relaxed text-studio-muted">
-              Demo mode stays the default on the Demo model. For Soul v2, paste
-              your key ID and secret here — they are sent to our server for this
-              request only, never stored in the browser or git. Real renders spend
-              your credits.
+              Demo stays the default on the Demo model. For Soul v2, use the header
+              API key panel or the fields below. Keys are sent to our server for this
+              request only, never stored in git. Real renders spend your credits.
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
@@ -457,7 +480,7 @@ export function ImageComposer({
                     resetEstimate();
                     setApiKeyId(e.target.value);
                   }}
-                  className="mt-1 w-full rounded-lg border border-studio-border bg-studio-bg px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+                  className="studio-input mt-1"
                 />
               </div>
               <div>
@@ -476,7 +499,7 @@ export function ImageComposer({
                     resetEstimate();
                     setApiKeySecret(e.target.value);
                   }}
-                  className="mt-1 w-full rounded-lg border border-studio-border bg-studio-bg px-3 py-2 text-sm text-studio-fg focus:border-studio-accent/50 focus:outline-none focus:ring-2 focus:ring-studio-accent/20"
+                  className="studio-input mt-1"
                 />
               </div>
             </div>
@@ -490,10 +513,16 @@ export function ImageComposer({
               type="button"
               disabled={estimatePhase === "loading"}
               onClick={onFetchEstimate}
-              className="mt-4 rounded-lg border border-studio-border px-3 py-2 text-sm text-studio-fg hover:bg-studio-bg disabled:opacity-60"
+              className="studio-btn-secondary mt-4 disabled:opacity-60"
             >
               {estimatePhase === "loading" ? "Estimating…" : "Estimate cost"}
             </button>
+            {estimatePhase === "loading" ? (
+              <div className="mt-3 space-y-2" aria-hidden>
+                <ShimmerBlock className="h-3 w-2/3 rounded" label="Estimating cost" />
+                <ShimmerBlock className="h-3 w-1/2 rounded" />
+              </div>
+            ) : null}
             {estimatePhase === "done" && estimate ? (
               <p className="mt-2 text-xs text-studio-fg">
                 About{" "}
@@ -502,20 +531,20 @@ export function ImageComposer({
               </p>
             ) : null}
             {estimatePhase === "error" && estimateError ? (
-              <p className="mt-2 text-xs text-amber-200" role="alert">
+              <p className="mt-2 text-xs studio-alert-warning-xs" role="alert">
                 {estimateError}
               </p>
             ) : null}
           </div>
         ) : null}
 
-        <div className="rounded-xl border border-dashed border-studio-border bg-studio-panel/50 p-4">
+        <div className="studio-card border-dashed p-5">
           <p className="text-sm font-medium text-studio-fg">
             Reference image (optional)
           </p>
           <p className="mt-1 text-xs text-studio-muted">
             {isSoulModel
-              ? `For Soul v2, we upload this server-side to Higgsfield storage (max ${REFERENCE_IMAGE_MAX_LABEL} — Vercel request limit).`
+              ? `For Soul v2, we upload this server-side to Higgsfield storage (max ${REFERENCE_IMAGE_MAX_LABEL}, Vercel request limit).`
               : `Attach a still for your recipe (max ${REFERENCE_IMAGE_MAX_LABEL}). Demo jobs ignore the file and return a labeled sample.`}
           </p>
           <input
@@ -526,7 +555,7 @@ export function ImageComposer({
             onChange={(e) => onReferenceSelected(e.target.files)}
           />
           {referenceError ? (
-            <p className="mt-2 text-xs text-amber-200" role="alert">
+            <p className="mt-2 text-xs studio-alert-warning-xs" role="alert">
               {referenceError}
             </p>
           ) : null}
@@ -561,13 +590,13 @@ export function ImageComposer({
         </div>
 
         {jobPhase === "done" && jobResult ? (
-          <div className="rounded-xl border border-studio-border bg-studio-panel p-4">
+          <div className="studio-card p-5">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-medium text-studio-fg">Result</h2>
               <GenerationSourceBadge source={jobResult.source} />
             </div>
             {jobResult.source === "demo" && jobResult.usedDemoFallbackForModel ? (
-              <p className="mt-2 text-xs text-amber-100">
+              <p className="mt-2 text-xs studio-alert-warning-xs">
                 {jobResult.fallbackReason ??
                   "Soul v2 could not finish on the API. This is a labeled demo sample, not a paid render."}
               </p>
@@ -601,21 +630,24 @@ export function ImageComposer({
                 .
               </p>
             ) : (
-              <p className="mt-3 text-xs text-amber-200" role="status">
-                Result shown here, but browser storage was full or blocked — not
+              <p className="mt-3 text-xs studio-alert-warning-xs" role="status">
+                Result shown here, but browser storage was full or blocked. Not
                 saved to Library.
               </p>
             )}
           </div>
         ) : null}
-      </div>
+      </MotionReveal>
 
-      <aside className="flex flex-col gap-4 lg:sticky lg:top-8 lg:self-start">
-        <div className="rounded-xl border border-studio-border bg-studio-panel p-4">
-          <h2 className="text-sm font-medium text-studio-fg">Generate</h2>
+      <MotionReveal
+        className="flex flex-col gap-4 lg:self-start"
+        delay={140}
+      >
+        <div className="studio-card p-5 lg:sticky lg:top-24">
+          <h2 className="studio-display text-sm font-semibold text-studio-fg">Generate</h2>
           <p className="mt-2 text-xs leading-relaxed text-studio-muted">
             {isSoulModel
-              ? "Soul v2 runs on Higgsfield with your key. If the API fails, you get a labeled demo fallback — never a fake paid render."
+              ? "Soul v2 runs on Higgsfield with your key. If the API fails, you get a labeled demo fallback, never a fake paid render."
               : "Demo jobs run on our server with a short pending state, then return a labeled sample image stored in your browser library."}
           </p>
           <button
@@ -623,7 +655,12 @@ export function ImageComposer({
             disabled={generateDisabled}
             onClick={onGenerate}
             aria-describedby="generate-phase-note"
-            className="mt-4 w-full rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-studio-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className={[
+              "studio-btn-primary mt-4 w-full disabled:cursor-not-allowed disabled:opacity-60",
+              jobPhase === "pending" ? "studio-btn-pending" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
             {jobPhase === "pending"
               ? "Generating…"
@@ -634,14 +671,14 @@ export function ImageComposer({
           <p id="generate-phase-note" className="mt-2 text-xs text-studio-muted">
             {jobPhase === "pending"
               ? isSoulModel
-                ? "Submitting to Higgsfield and polling — this can take a minute."
-                : "Pending — usually a couple of seconds."
+                ? "Submitting to Higgsfield and polling. This can take a minute."
+                : "Pending. Usually a couple of seconds."
               : isSoulModel
                 ? "Requires a key in the form or server env vars."
                 : "No API key required. Outputs are clearly marked Demo."}
           </p>
           {jobPhase === "error" && jobError ? (
-            <p className="mt-2 text-xs text-amber-200" role="alert">
+            <p className="mt-2 text-xs studio-alert-warning-xs" role="alert">
               {jobError}
             </p>
           ) : null}
@@ -650,9 +687,9 @@ export function ImageComposer({
           href="/effects"
           className="text-center text-sm text-studio-accent hover:underline"
         >
-          ← Back to Effects
+          Back to Effects
         </Link>
-      </aside>
+      </MotionReveal>
     </div>
   );
 }

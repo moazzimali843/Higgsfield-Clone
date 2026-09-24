@@ -22,7 +22,7 @@ export function MediaPreview({
   aspectClass = "aspect-video",
   className = "",
   priority = false,
-  showCredit = true,
+  showCredit = false,
   motion = "loop",
 }: MediaPreviewProps) {
   const showStill = media.type === "image" || motion === "still";
@@ -30,14 +30,14 @@ export function MediaPreview({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-xl bg-studio-panel ${aspectClass} ${className}`}
+      className={`relative overflow-hidden rounded-xl bg-studio-bg-elevated ${aspectClass} ${className}`}
     >
       {showStill ? (
         <Image
           src={stillSrc}
           alt={media.alt}
           fill
-          className="object-cover"
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           priority={priority}
         />
@@ -45,7 +45,7 @@ export function MediaPreview({
         <PreviewVideo src={media.src} poster={media.poster} alt={media.alt} />
       )}
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-transparent"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
         aria-hidden
       />
       {showCredit ? (

@@ -85,7 +85,7 @@ export function GenerationRecipePanel({
           </dt>
           <dd className="mt-1 text-studio-fg">{recipe.referenceFileName}</dd>
           <p className="mt-1 text-xs text-studio-muted">
-            Filename only — re-attach the file in the composer if you remix.
+            Filename only. Re-attach the file in the composer if you remix.
           </p>
         </div>
       ) : null}

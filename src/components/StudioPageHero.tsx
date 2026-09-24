@@ -20,13 +20,12 @@ export function StudioPageHero({
         media={media}
         aspectClass="aspect-[21/9] sm:aspect-[2.4/1]"
         priority
-        className="ring-1 ring-studio-border"
+        className="studio-media-ring"
+        showCredit={false}
       />
       <div className="max-w-2xl">
-        <p className="text-sm font-medium uppercase tracking-wide text-studio-accent">
-          {eyebrow}
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-studio-fg sm:text-4xl">
+        <p className="studio-eyebrow">{eyebrow}</p>
+        <h1 className="studio-display mt-3 text-3xl font-semibold tracking-tight text-studio-fg sm:text-4xl">
           {title}
         </h1>
         {children}
