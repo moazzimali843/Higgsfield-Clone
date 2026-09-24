@@ -3,8 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { DemoBadge } from "@/components/DemoBadge";
+import { useClientHydrated } from "@/hooks/use-client-hydrated";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
+import {
+  composerHrefForRemix,
+  libraryHrefForGeneration,
+} from "@/lib/composer-remix";
 
 function formatCreatedAt(iso: string): string {
   try {
@@ -18,7 +23,19 @@ function formatCreatedAt(iso: string): string {
 }
 
 export function LibraryPageClient() {
+  const hydrated = useClientHydrated();
   const { items } = useStudioLibrary();
+
+  if (!hydrated) {
+    return (
+      <div
+        className="rounded-xl border border-studio-border bg-studio-panel p-8 text-center text-sm text-studio-muted"
+        aria-busy="true"
+      >
+        Loading your browser library…
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -74,9 +91,20 @@ export function LibraryPageClient() {
                 Reference: {item.recipe.referenceFileName}
               </p>
             ) : null}
-            <p className="mt-auto pt-2 text-xs text-studio-muted">
-              Full recipe and remix arrive in Phase 5.
-            </p>
+            <div className="mt-auto flex flex-wrap gap-2 pt-3">
+              <Link
+                href={libraryHrefForGeneration(item.id)}
+                className="rounded-lg border border-studio-border px-3 py-1.5 text-xs font-medium text-studio-fg hover:border-studio-accent/40"
+              >
+                View recipe
+              </Link>
+              <Link
+                href={composerHrefForRemix(item.id)}
+                className="rounded-lg bg-studio-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-studio-accent/90"
+              >
+                Remix
+              </Link>
+            </div>
           </div>
         </li>
       ))}

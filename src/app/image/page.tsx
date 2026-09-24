@@ -11,12 +11,16 @@ export const metadata: Metadata = {
 };
 
 type ImagePageProps = {
-  searchParams: Promise<{ preset?: string | string[] }>;
+  searchParams: Promise<{
+    preset?: string | string[];
+    remix?: string | string[];
+  }>;
 };
 
 export default async function ImagePage({ searchParams }: ImagePageProps) {
-  const { preset: presetRaw } = await searchParams;
-  const presetId = firstQueryValue(presetRaw);
+  const { preset: presetRaw, remix: remixRaw } = await searchParams;
+  const remixId = firstQueryValue(remixRaw);
+  const presetId = remixId ? undefined : firstQueryValue(presetRaw);
   const { initialValues, presetName, unknownPresetId } =
     resolveComposerFromPresetParam(presetId);
   const heroMedia = getPreviewMedia("/image");
@@ -50,10 +54,11 @@ export default async function ImagePage({ searchParams }: ImagePageProps) {
       </header>
 
       <ImageComposer
-        key={presetId ?? "blank"}
+        key={remixId ?? presetId ?? "blank"}
         initialValues={initialValues}
         presetName={presetName}
         unknownPresetId={unknownPresetId}
+        remixGenerationId={remixId}
         effectPresetId={
           presetId && !unknownPresetId ? presetId : undefined
         }
