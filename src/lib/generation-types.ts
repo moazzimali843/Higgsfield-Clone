@@ -11,11 +11,13 @@ export type GenerationRecipe = {
   referenceFileName?: string;
 };
 
+export type LibraryMediaType = "image" | "video";
+
 export type LibraryGeneration = {
   id: string;
   createdAt: string;
   source: GenerationSource;
-  mediaType: "image";
+  mediaType: LibraryMediaType;
   outputUrl: string;
   recipe: GenerationRecipe;
 };
@@ -60,4 +62,14 @@ export type ImageJobResponse =
 export type HiggsfieldEstimateResponse = {
   credits: string;
   usd: string;
+};
+
+export type DemoVideoJobRequest = DemoImageJobRequest;
+
+export type DemoVideoJobResponse = {
+  status: "completed";
+  source: "demo";
+  outputUrl: string;
+  /** True when the user picked a non-demo video model label. */
+  usedDemoFallbackForModel: boolean;
 };

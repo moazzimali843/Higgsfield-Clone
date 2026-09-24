@@ -4,21 +4,17 @@ export type NavItem = {
   description?: string;
 };
 
-/** Primary studio areas that ship in Phases 3–4+ */
+/** Primary studio areas that ship in Phases 3–6+ */
 export const liveNav: NavItem[] = [
   { label: "Home", href: "/" },
   { label: "Effects", href: "/effects" },
   { label: "Image", href: "/image" },
+  { label: "Video", href: "/video" },
   { label: "Library", href: "/library" },
 ];
 
 /** Wider Higgsfield map — honest Coming soon pages until later phases */
 export const comingSoonNav: NavItem[] = [
-  {
-    label: "Video",
-    href: "/video",
-    description: "Same compose → generate loop as image (Phase 6).",
-  },
   {
     label: "Audio",
     href: "/audio",

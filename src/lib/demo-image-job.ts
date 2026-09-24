@@ -11,6 +11,15 @@ import {
 const PROMPT_MAX_LENGTH = 4_000;
 const MAX_EXCLUDE_URLS = 64;
 
+/** Stable index for demo video clip selection (see demo-video-job). */
+export function hashPromptForDemo(prompt: string): number {
+  let hash = 0;
+  for (let i = 0; i < prompt.length; i += 1) {
+    hash = (hash * 31 + prompt.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
 export type PickDemoOutputOptions = {
   excludeUrls?: readonly string[];
   /** Returns a value in [0, 1). Defaults to Math.random. */

@@ -23,15 +23,18 @@ export default function LibraryPage() {
             Your generations
           </h1>
           <p className="mt-4 text-base leading-relaxed text-studio-muted">
-            Demo results from the image composer live here in this browser. No
-            account and no server database — clear site data to reset.
+            Demo results from the image and video composers live here in this
+            browser. No account and no server database — clear site data to
+            reset.
           </p>
-          <Link
-            href="/image"
-            className="mt-4 inline-block text-sm text-studio-accent hover:underline"
-          >
-            Create another image →
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <Link href="/image" className="text-studio-accent hover:underline">
+              Create another image →
+            </Link>
+            <Link href="/video" className="text-studio-accent hover:underline">
+              Create a video →
+            </Link>
+          </div>
         </div>
         {heroMedia ? (
           <div className="w-full max-w-xs shrink-0">
