@@ -15,11 +15,6 @@ import {
   recipeToComposerInitialValues,
 } from "@/lib/composer-remix";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
-import {
-  findLibraryGenerationById,
-  libraryHrefForGeneration,
-  recipeToComposerInitialValues,
-} from "@/lib/composer-remix";
 import type {
   DemoImageJobResponse,
   HiggsfieldEstimateResponse,
@@ -83,14 +78,6 @@ export function ImageComposer({
   const remixAppliedRef = useRef<string | null>(null);
   const hydrated = useClientHydrated();
   const { items, append } = useStudioLibrary();
-  const remixGeneration =
-    hydrated && remixGenerationId
-      ? findLibraryGenerationById(items, remixGenerationId)
-      : undefined;
-  const remixAppliedRef = useRef<string | null>(null);
-
-  const recipeEffectPresetId =
-    effectPresetId ?? remixGeneration?.recipe.effectPresetId;
 
   const remixGeneration = useMemo(() => {
     if (!hydrated || !remixGenerationId) return undefined;
@@ -98,7 +85,7 @@ export function ImageComposer({
   }, [hydrated, remixGenerationId, items]);
 
   const recipeEffectPresetId =
-    remixGeneration?.recipe.effectPresetId ?? effectPresetId;
+    effectPresetId ?? remixGeneration?.recipe.effectPresetId;
 
   const libraryOutputUrls = useMemo(
     () => items.map((item) => item.outputUrl),
@@ -168,17 +155,6 @@ export function ImageComposer({
     setReference({ fileName: file.name, previewUrl });
     setReferenceFile(file);
     setReferenceError(null);
-    resetEstimate();
-  }
-
-  function clearReference() {
-    if (reference?.previewUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(reference.previewUrl);
-    }
-    setReference(null);
-    setReferenceFile(null);
-    setReferenceError(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
     resetEstimate();
   }
 
