@@ -10,7 +10,7 @@ const startHereCopy: Record<string, string> = {
   "/effects":
     "Browse preset looks and open one in the image composer with prompt and settings pre-filled.",
   "/image":
-    "Write a prompt, choose settings, and generate. Demo jobs and library land in Phase 4.",
+    "Write a prompt, choose settings, and generate labeled demo images.",
   "/library":
     "Your generations will live here with recipes and remix — stored in the browser only.",
 };

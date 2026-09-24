@@ -27,7 +27,7 @@ export default function EffectsPage() {
           <p className="mt-4 text-base leading-relaxed text-studio-muted">
             Each card is a local recipe — name, still, prompt, and settings —
             not a motion-tracking pipeline. Pick one to pre-fill the image
-            composer; demo generation arrives in Phase 4.
+            composer, then generate a labeled demo from Image.
           </p>
         </div>
         {heroMedia ? (
