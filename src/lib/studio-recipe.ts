@@ -26,7 +26,8 @@ export const composerModels: ComposerModelOption[] = [
   {
     id: "soul-v2-standard",
     label: "Soul v2 (standard)",
-    description: "Real render with your API key — optional in Phase 7.",
+    description:
+      "Real Soul v2 render — paste your Higgsfield API key for this job only.",
   },
 ];
 
@@ -42,8 +43,37 @@ export type ImageComposerInitialValues = {
   modelId: string;
 };
 
+/** Small list shown in the video composer model picker. */
+export const videoComposerModels: ComposerModelOption[] = [
+  {
+    id: "demo",
+    label: "Demo",
+    description: "Labeled sample clip — no API key required.",
+  },
+  {
+    id: "seedance-display",
+    label: "Seedance (display)",
+    description: "Real video render with your API key — optional in a later phase.",
+  },
+];
+
+export function getVideoComposerModelById(
+  modelId: string,
+): ComposerModelOption | undefined {
+  return videoComposerModels.find((m) => m.id === modelId);
+}
+
+export type VideoComposerInitialValues = ImageComposerInitialValues;
+
 export const blankComposerValues: ImageComposerInitialValues = {
   prompt: "",
   aspectRatio: "1:1",
   modelId: "demo",
 };
+
+export const blankVideoComposerValues: VideoComposerInitialValues = {
+  prompt: "",
+  aspectRatio: "16:9",
+  modelId: "demo",
+};
+

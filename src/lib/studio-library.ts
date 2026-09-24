@@ -20,7 +20,8 @@ function isLibraryGeneration(value: unknown): value is LibraryGeneration {
   if (typeof item.id !== "string" || typeof item.createdAt !== "string") {
     return false;
   }
-  if (item.source !== "demo" || item.mediaType !== "image") return false;
+  if (item.source !== "demo" && item.source !== "higgsfield") return false;
+  if (item.mediaType !== "image" && item.mediaType !== "video") return false;
   if (typeof item.outputUrl !== "string") return false;
   const recipe = item.recipe;
   if (!recipe || typeof recipe !== "object") return false;
@@ -58,14 +59,16 @@ export function writeLibraryToStorage(
 }
 
 export function createLibraryGeneration(input: {
+  mediaType?: LibraryGeneration["mediaType"];
   outputUrl: string;
   recipe: LibraryGeneration["recipe"];
+  source?: LibraryGeneration["source"];
 }): LibraryGeneration {
   return {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
-    source: "demo",
-    mediaType: "image",
+    source: input.source ?? "demo",
+    mediaType: input.mediaType ?? "image",
     outputUrl: input.outputUrl,
     recipe: input.recipe,
   };

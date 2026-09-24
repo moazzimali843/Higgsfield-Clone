@@ -1,4 +1,7 @@
-import { demoOutputImagesByAspect } from "@/data/demo-output-images";
+import {
+  allDemoOutputUrls,
+  demoOutputImagesByAspect,
+} from "@/data/demo-output-images";
 import type { DemoImageJobRequest, DemoImageJobResponse } from "@/lib/generation-types";
 import {
   aspectRatioOptions,
@@ -6,7 +9,9 @@ import {
 } from "@/lib/studio-recipe";
 
 const PROMPT_MAX_LENGTH = 4_000;
+const MAX_EXCLUDE_URLS = 64;
 
+/** Stable index for demo video clip selection (see demo-video-job). */
 export function hashPromptForDemo(prompt: string): number {
   let hash = 0;
   for (let i = 0; i < prompt.length; i += 1) {
@@ -15,14 +20,55 @@ export function hashPromptForDemo(prompt: string): number {
   return Math.abs(hash);
 }
 
+export type PickDemoOutputOptions = {
+  excludeUrls?: readonly string[];
+  /** Returns a value in [0, 1). Defaults to Math.random. */
+  random?: () => number;
+};
+
+export function parseExcludeOutputUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const urls: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string") continue;
+    const trimmed = entry.trim();
+    if (!trimmed) continue;
+    urls.push(trimmed);
+    if (urls.length >= MAX_EXCLUDE_URLS) break;
+  }
+  return urls;
+}
+
 export function pickDemoOutputUrl(
-  prompt: string,
   aspectRatio: AspectRatio,
+  options: PickDemoOutputOptions = {},
 ): string {
-  const pool =
+  const exclude = new Set(options.excludeUrls ?? []);
+  const random = options.random ?? Math.random;
+
+  const aspectPool =
     demoOutputImagesByAspect[aspectRatio] ?? demoOutputImagesByAspect["1:1"];
-  const index = hashPromptForDemo(prompt) % pool.length;
-  return pool[index];
+
+  const pickFrom = (pool: readonly string[]): string => {
+    const available = pool.filter((url) => !exclude.has(url));
+    const candidates = available.length > 0 ? available : [...pool];
+    const index = Math.floor(random() * candidates.length);
+    return candidates[Math.min(index, candidates.length - 1)];
+  };
+
+  const aspectPick = pickFrom(aspectPool);
+  if (!exclude.has(aspectPick)) {
+    return aspectPick;
+  }
+
+  const catalog = allDemoOutputUrls();
+  const catalogAvailable = catalog.filter((url) => !exclude.has(url));
+  if (catalogAvailable.length > 0) {
+    const index = Math.floor(random() * catalogAvailable.length);
+    return catalogAvailable[index];
+  }
+
+  return aspectPick;
 }
 
 export function parseDemoImageJobRequest(
@@ -58,12 +104,15 @@ export function parseDemoImageJobRequest(
       ? record.modelId.trim()
       : "demo";
 
+  const excludeOutputUrls = parseExcludeOutputUrls(record.excludeOutputUrls);
+
   return {
     ok: true,
     value: {
       prompt,
       aspectRatio: aspectRatio as AspectRatio,
       modelId,
+      excludeOutputUrls,
     },
   };
 }
@@ -74,7 +123,9 @@ export function runDemoImageJob(
   return {
     status: "completed",
     source: "demo",
-    outputUrl: pickDemoOutputUrl(request.prompt, request.aspectRatio),
+    outputUrl: pickDemoOutputUrl(request.aspectRatio, {
+      excludeUrls: request.excludeOutputUrls,
+    }),
     usedDemoFallbackForModel: request.modelId !== "demo",
   };
 }

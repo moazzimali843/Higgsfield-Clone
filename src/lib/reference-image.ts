@@ -1,5 +1,9 @@
 const ACCEPTED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
-export const REFERENCE_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+
+/** Keeps multipart Soul submits under Vercel's 4.5 MB function body limit. */
+export const REFERENCE_IMAGE_MAX_BYTES = 4 * 1024 * 1024;
+
+export const REFERENCE_IMAGE_MAX_LABEL = "4 MB";
 
 export type ReferenceImageAttachment = {
   fileName: string;
@@ -18,7 +22,7 @@ export function validateReferenceImageFile(
   if (file.size > REFERENCE_IMAGE_MAX_BYTES) {
     return {
       ok: false,
-      error: "Reference image must be 8 MB or smaller.",
+      error: `Reference image must be ${REFERENCE_IMAGE_MAX_LABEL} or smaller.`,
     };
   }
   return { ok: true };
