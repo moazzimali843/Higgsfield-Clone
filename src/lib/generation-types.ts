@@ -59,6 +59,66 @@ export type ImageJobResponse =
   | HiggsfieldImageJobResponse
   | DemoFallbackImageJobResponse;
 
+/** Soul submit succeeded; browser polls `/api/higgsfield/image/poll`. */
+export type SoulImageSubmitPollingResponse = {
+  phase: "polling";
+  statusUrl: string;
+  requestId: string;
+  usedReferenceUpload?: boolean;
+};
+
+export type SoulImagePollInProgressResponse = {
+  phase: "polling";
+  higgsfieldStatus: "queued" | "in_progress";
+  requestId: string;
+};
+
+export type SoulImageSubmitResponse =
+  | ImageJobResponse
+  | SoulImageSubmitPollingResponse;
+
+export type SoulImagePollResponse =
+  | ImageJobResponse
+  | SoulImagePollInProgressResponse;
+
+export function isImageJobResponse(
+  value: unknown,
+): value is ImageJobResponse {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    record.status === "completed" &&
+    typeof record.outputUrl === "string" &&
+    (record.source === "demo" || record.source === "higgsfield")
+  );
+}
+
+export function isSoulImagePollInProgressResponse(
+  value: unknown,
+): value is SoulImagePollInProgressResponse {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    record.phase === "polling" &&
+    (record.higgsfieldStatus === "queued" ||
+      record.higgsfieldStatus === "in_progress") &&
+    typeof record.requestId === "string"
+  );
+}
+
+export function isSoulImageSubmitPollingResponse(
+  value: unknown,
+): value is SoulImageSubmitPollingResponse {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    record.phase === "polling" &&
+    typeof record.statusUrl === "string" &&
+    typeof record.requestId === "string" &&
+    record.higgsfieldStatus === undefined
+  );
+}
+
 export type HiggsfieldEstimateResponse = {
   credits: string;
   usd: string;

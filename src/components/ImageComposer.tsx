@@ -12,9 +12,11 @@ import type {
   ImageJobResponse,
 } from "@/lib/generation-types";
 import {
+  REFERENCE_IMAGE_MAX_LABEL,
   validateReferenceImageFile,
   type ReferenceImageAttachment,
 } from "@/lib/reference-image";
+import { runSoulV2ImageInBrowser } from "@/lib/soul-image-browser";
 import { createLibraryGeneration } from "@/lib/studio-library";
 import {
   aspectRatioOptions,
@@ -188,34 +190,30 @@ export function ImageComposer({
       let result: ImageJobResponse;
 
       if (isSoulModel) {
-        const form = new FormData();
-        form.set("prompt", trimmed);
-        form.set("aspectRatio", aspectRatio);
-        if (apiKeyId.trim()) form.set("apiKeyId", apiKeyId.trim());
-        if (apiKeySecret.trim()) form.set("apiKeySecret", apiKeySecret.trim());
-        if (referenceFile) form.set("reference", referenceFile);
-        if (libraryOutputUrls.length > 0) {
-          form.set("excludeOutputUrls", JSON.stringify(libraryOutputUrls));
-        }
-
-        const response = await fetch("/api/higgsfield/image", {
-          method: "POST",
-          body: form,
+        const keyId = apiKeyId.trim();
+        const keySecret = apiKeySecret.trim();
+        result = await runSoulV2ImageInBrowser({
+          aspectRatio,
+          apiKeyId: keyId,
+          apiKeySecret: keySecret,
+          excludeOutputUrls: libraryOutputUrls,
+          usedReferenceUpload: Boolean(referenceFile),
+          submit: () => {
+            const form = new FormData();
+            form.set("prompt", trimmed);
+            form.set("aspectRatio", aspectRatio);
+            if (keyId) form.set("apiKeyId", keyId);
+            if (keySecret) form.set("apiKeySecret", keySecret);
+            if (referenceFile) form.set("reference", referenceFile);
+            if (libraryOutputUrls.length > 0) {
+              form.set("excludeOutputUrls", JSON.stringify(libraryOutputUrls));
+            }
+            return fetch("/api/higgsfield/image", {
+              method: "POST",
+              body: form,
+            });
+          },
         });
-        const payload = (await response.json()) as ImageJobResponse | {
-          error?: string;
-        };
-        if (!response.ok) {
-          const message =
-            typeof payload === "object" &&
-            payload &&
-            "error" in payload &&
-            typeof payload.error === "string"
-              ? payload.error
-              : "Real Soul job failed. Try again.";
-          throw new Error(message);
-        }
-        result = payload as ImageJobResponse;
       } else {
         const response = await fetch("/api/demo/image", {
           method: "POST",
@@ -452,8 +450,8 @@ export function ImageComposer({
           </p>
           <p className="mt-1 text-xs text-studio-muted">
             {isSoulModel
-              ? "For Soul v2, we upload this server-side to Higgsfield storage and pass the public URL with your prompt."
-              : "Attach a still for your recipe. Demo jobs ignore the file and return a labeled sample."}
+              ? `For Soul v2, we upload this server-side to Higgsfield storage (max ${REFERENCE_IMAGE_MAX_LABEL} — Vercel request limit).`
+              : `Attach a still for your recipe (max ${REFERENCE_IMAGE_MAX_LABEL}). Demo jobs ignore the file and return a labeled sample.`}
           </p>
           <input
             ref={fileInputRef}

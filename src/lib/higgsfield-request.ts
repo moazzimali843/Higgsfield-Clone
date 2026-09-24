@@ -72,6 +72,45 @@ export function referenceContentTypeFromFile(
   return null;
 }
 
+export type SoulImagePollFields = SoulImageJobFields & {
+  statusUrl: string;
+  excludeOutputUrls?: string[];
+  usedReferenceUpload?: boolean;
+  clientTimedOut?: boolean;
+};
+
+export function parseSoulImagePollJson(
+  body: unknown,
+): { ok: true; value: SoulImagePollFields } | { ok: false; error: string } {
+  if (!body || typeof body !== "object") {
+    return { ok: false, error: "Request body must be a JSON object." };
+  }
+  const record = body as Record<string, unknown>;
+  const base = parseSoulImageJobFields(record);
+  if (!base.ok) return base;
+
+  const statusUrl =
+    typeof record.statusUrl === "string" ? record.statusUrl.trim() : "";
+  if (!statusUrl) {
+    return { ok: false, error: "statusUrl is required." };
+  }
+
+  const excludeOutputUrls = parseExcludeOutputUrls(record.excludeOutputUrls);
+  const usedReferenceUpload = record.usedReferenceUpload === true;
+  const clientTimedOut = record.clientTimedOut === true;
+
+  return {
+    ok: true,
+    value: {
+      ...base.value,
+      statusUrl,
+      excludeOutputUrls,
+      usedReferenceUpload,
+      clientTimedOut,
+    },
+  };
+}
+
 export function parseExcludeOutputUrlsField(
   value: FormDataEntryValue | null,
 ): string[] {

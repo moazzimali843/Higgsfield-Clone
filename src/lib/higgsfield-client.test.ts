@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildSoulV2StandardBody,
+  isAllowedHiggsfieldStatusUrl,
   isHiggsfieldAuthOrAvailabilityError,
   isTerminalHiggsfieldStatus,
   resolveHiggsfieldCredentials,
@@ -22,6 +23,28 @@ describe("higgsfield client helpers", () => {
     assert.deepEqual(fromEnv, { keyId: "env-id", keySecret: "env-secret" });
 
     assert.equal(resolveHiggsfieldCredentials({}, {}), null);
+
+    assert.equal(
+      resolveHiggsfieldCredentials(
+        { apiKeyId: "ui-only" },
+        { HIGGSFIELD_KEY_SECRET: "env-secret" },
+      ),
+      null,
+    );
+  });
+
+  it("allows only Higgsfield status URLs", () => {
+    assert.equal(
+      isAllowedHiggsfieldStatusUrl(
+        "https://api.higgsfield.ai/requests/abc",
+      ),
+      true,
+    );
+    assert.equal(
+      isAllowedHiggsfieldStatusUrl("https://evil.example/requests/abc"),
+      false,
+    );
+    assert.equal(isAllowedHiggsfieldStatusUrl("not-a-url"), false);
   });
 
   it("builds Soul v2 body with optional reference URL", () => {

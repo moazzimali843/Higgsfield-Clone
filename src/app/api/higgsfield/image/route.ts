@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { parseExcludeOutputUrls } from "@/lib/demo-image-job";
-import { runSoulV2ImageJob } from "@/lib/higgsfield-image-job";
+import { submitSoulV2ImageJob } from "@/lib/higgsfield-image-job";
+import { REFERENCE_IMAGE_MAX_BYTES, REFERENCE_IMAGE_MAX_LABEL } from "@/lib/reference-image";
 import {
   parseExcludeOutputUrlsField,
   parseSoulImageJobFields,
   referenceContentTypeFromFile,
 } from "@/lib/higgsfield-request";
-import { REFERENCE_IMAGE_MAX_BYTES } from "@/lib/reference-image";
+
+/** Pro plan can raise Vercel's ceiling; demo reviewers use `/api/demo/*` instead. */
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
       }
       if (referenceEntry.size > REFERENCE_IMAGE_MAX_BYTES) {
         return NextResponse.json(
-          { error: "Reference image must be 8 MB or smaller." },
+          { error: `Reference image must be ${REFERENCE_IMAGE_MAX_LABEL} or smaller.` },
           { status: 400 },
         );
       }
@@ -63,7 +66,7 @@ export async function POST(request: Request) {
       form.get("excludeOutputUrls"),
     );
 
-    const job = await runSoulV2ImageJob({
+    const job = await submitSoulV2ImageJob({
       ...fields.value,
       reference,
       excludeOutputUrls,
@@ -99,7 +102,7 @@ export async function POST(request: Request) {
     body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const excludeOutputUrls = parseExcludeOutputUrls(record.excludeOutputUrls);
 
-  const job = await runSoulV2ImageJob({
+  const job = await submitSoulV2ImageJob({
     ...parsed.value,
     excludeOutputUrls,
     env: {

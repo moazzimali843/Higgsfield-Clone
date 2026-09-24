@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { fetchSoulV2Estimate } from "@/lib/higgsfield-image-job";
 import { parseSoulImageJobJson } from "@/lib/higgsfield-request";
 
+export const maxDuration = 30;
+
 export async function POST(request: Request) {
   let body: unknown;
   try {

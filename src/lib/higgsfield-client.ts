@@ -54,11 +54,30 @@ export function resolveHiggsfieldCredentials(
   input: { apiKeyId?: string; apiKeySecret?: string },
   env: HiggsfieldEnv,
 ): HiggsfieldCredentials | null {
-  const keyId = input.apiKeyId?.trim() || env.HIGGSFIELD_KEY_ID?.trim();
-  const keySecret =
-    input.apiKeySecret?.trim() || env.HIGGSFIELD_KEY_SECRET?.trim();
+  const uiKeyId = input.apiKeyId?.trim();
+  const uiKeySecret = input.apiKeySecret?.trim();
+
+  if (uiKeyId || uiKeySecret) {
+    if (!uiKeyId || !uiKeySecret) return null;
+    return { keyId: uiKeyId, keySecret: uiKeySecret };
+  }
+
+  const keyId = env.HIGGSFIELD_KEY_ID?.trim();
+  const keySecret = env.HIGGSFIELD_KEY_SECRET?.trim();
   if (!keyId || !keySecret) return null;
   return { keyId, keySecret };
+}
+
+/** Only poll status URLs returned by Higgsfield (SSRF hygiene). */
+export function isAllowedHiggsfieldStatusUrl(statusUrl: string): boolean {
+  try {
+    const parsed = new URL(statusUrl);
+    return (
+      parsed.protocol === "https:" && parsed.hostname === "api.higgsfield.ai"
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function higgsfieldAuthHeader(creds: HiggsfieldCredentials): string {
