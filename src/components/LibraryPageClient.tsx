@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { DemoBadge } from "@/components/DemoBadge";
+import { GenerationSourceBadge } from "@/components/GenerationSourceBadge";
 import { PreviewVideo } from "@/components/PreviewVideo";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
+import { imageComposerHrefFromRecipe } from "@/lib/composer-remix-url";
 
 function formatCreatedAt(iso: string): string {
   try {
@@ -48,11 +49,11 @@ export function LibraryPageClient() {
   }
 
   return (
-    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="grid items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
         <li
           key={item.id}
-          className="flex flex-col overflow-hidden rounded-xl border border-studio-border bg-studio-panel"
+          className="overflow-hidden rounded-xl border border-studio-border bg-studio-panel"
         >
           <div
             className={`relative w-full bg-studio-bg ${aspectClassForRatio(
@@ -72,10 +73,11 @@ export function LibraryPageClient() {
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 33vw"
+                unoptimized={!item.outputUrl.includes("images.pexels.com")}
               />
             )}
             <div className="absolute left-2 top-2 flex flex-wrap gap-1">
-              <DemoBadge />
+              <GenerationSourceBadge source={item.source} />
               {item.mediaType === "video" ? (
                 <span className="rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
                   Video
@@ -83,7 +85,7 @@ export function LibraryPageClient() {
               ) : null}
             </div>
           </div>
-          <div className="flex flex-1 flex-col gap-2 p-4">
+          <div className="flex flex-col gap-2 p-4">
             <p className="line-clamp-3 text-sm text-studio-fg">
               {item.recipe.prompt}
             </p>
@@ -96,9 +98,14 @@ export function LibraryPageClient() {
                 Reference: {item.recipe.referenceFileName}
               </p>
             ) : null}
-            <p className="mt-auto pt-2 text-xs text-studio-muted">
-              Full recipe and remix arrive in Phase 5.
-            </p>
+            <div className="pt-1">
+              <Link
+                href={imageComposerHrefFromRecipe(item.recipe)}
+                className="text-sm font-medium text-studio-accent hover:underline"
+              >
+                Remix in Image composer
+              </Link>
+            </div>
           </div>
         </li>
       ))}

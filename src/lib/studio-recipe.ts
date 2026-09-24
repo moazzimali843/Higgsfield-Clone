@@ -26,7 +26,8 @@ export const composerModels: ComposerModelOption[] = [
   {
     id: "soul-v2-standard",
     label: "Soul v2 (standard)",
-    description: "Real render with your API key — optional in Phase 7.",
+    description:
+      "Real Soul v2 render — paste your Higgsfield API key for this job only.",
   },
 ];
 
