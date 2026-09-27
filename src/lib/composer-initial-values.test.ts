@@ -1,41 +1,28 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { composerHrefForPreset } from "@/data/effect-presets";
-import { resolveComposerFromPresetParam } from "@/lib/composer-initial-values";
+import {
+  applyVideoComposerRemixQuery,
+  resolveComposerPageState,
+} from "@/lib/composer-initial-values";
 import { firstQueryValue } from "@/lib/search-params";
 
-describe("effect preset handoff", () => {
-  it("builds composer URLs with encoded ids", () => {
-    assert.equal(
-      composerHrefForPreset("neon-drift"),
-      "/image?preset=neon-drift",
-    );
-    assert.equal(
-      composerHrefForPreset("needs encode"),
-      "/image?preset=needs%20encode",
-    );
-  });
-
-  it("fills composer from a known preset", () => {
-    const state = resolveComposerFromPresetParam("floating-fall");
-    assert.equal(state.presetName, "Floating Fall");
-    assert.match(state.initialValues.prompt, /mid-air/i);
-    assert.equal(state.initialValues.aspectRatio, "9:16");
+describe("composer initial values", () => {
+  it("starts blank when no query params are present", () => {
+    const state = resolveComposerPageState({});
+    assert.equal(state.initialValues.prompt, "");
+    assert.equal(state.initialValues.aspectRatio, "1:1");
     assert.equal(state.initialValues.modelId, "demo");
   });
 
-  it("falls back when preset is missing", () => {
-    const state = resolveComposerFromPresetParam("not-a-real-preset");
-    assert.equal(state.presetName, undefined);
-    assert.equal(state.unknownPresetId, "not-a-real-preset");
-    assert.equal(state.initialValues.prompt, "");
-    assert.equal(state.initialValues.aspectRatio, "1:1");
-  });
-
-  it("uses blank composer when param is empty", () => {
-    const state = resolveComposerFromPresetParam(undefined);
-    assert.equal(state.presetName, undefined);
-    assert.equal(state.initialValues.prompt, "");
+  it("applies image page query with model validation", () => {
+    const state = resolveComposerPageState({
+      prompt: "  portrait  ",
+      modelId: "demo",
+      aspectRatio: "9:16",
+    });
+    assert.equal(state.initialValues.prompt, "  portrait  ");
+    assert.equal(state.initialValues.modelId, "demo");
+    assert.equal(state.initialValues.aspectRatio, "9:16");
   });
 
   it("normalizes query values (trim, arrays, empty)", () => {
@@ -44,5 +31,25 @@ describe("effect preset handoff", () => {
     assert.equal(firstQueryValue(" neon-drift "), "neon-drift");
     assert.equal(firstQueryValue(["floating-fall", "ignored"]), "floating-fall");
     assert.equal(firstQueryValue([]), undefined);
+  });
+
+  it("applies video page query with video model validation", () => {
+    const base = applyVideoComposerRemixQuery(
+      { prompt: "", aspectRatio: "16:9", modelId: "demo" },
+      {
+        prompt: "  waves  ",
+        modelId: "soul-v2-standard",
+        aspectRatio: "16:9",
+      },
+    );
+    assert.equal(base.prompt, "  waves  ");
+    assert.equal(base.modelId, "demo");
+    assert.equal(base.aspectRatio, "16:9");
+
+    const seedance = applyVideoComposerRemixQuery(
+      { prompt: "", aspectRatio: "16:9", modelId: "demo" },
+      { modelId: "seedance-2.5" },
+    );
+    assert.equal(seedance.modelId, "seedance-2.5");
   });
 });

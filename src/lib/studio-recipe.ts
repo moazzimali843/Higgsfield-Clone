@@ -1,4 +1,4 @@
-/** Shared recipe shape for effect presets and the image composer (Phases 3–5). */
+/** Shared recipe shape for image and video composers. */
 
 export const aspectRatioOptions = ["1:1", "16:9", "9:16", "4:3", "3:4"] as const;
 
@@ -21,13 +21,12 @@ export const composerModels: ComposerModelOption[] = [
   {
     id: "demo",
     label: "Demo",
-    description: "Labeled sample output. No API key required.",
+    description: "Quick preview without an API key.",
   },
   {
     id: "soul-v2-standard",
     label: "Soul v2 (standard)",
-    description:
-      "Real Soul v2 render. Uses your Higgsfield API key for this job.",
+    description: "Full-quality image generation.",
   },
 ];
 
@@ -52,12 +51,12 @@ export const videoComposerModels: ComposerModelOption[] = [
   {
     id: "demo",
     label: "Demo",
-    description: "Labeled sample clip. No API key required.",
+    description: "Quick preview without an API key.",
   },
   {
     id: SEEDANCE_VIDEO_MODEL_ID,
     label: "Seedance 2.5",
-    description: "Real Seedance 2.5 clip. Uses your Higgsfield API key.",
+    description: "Full-quality video generation.",
   },
 ];
 

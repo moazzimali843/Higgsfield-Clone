@@ -11,6 +11,8 @@ export type SoulImageJobFields = {
   aspectRatio: AspectRatio;
   apiKeyId?: string;
   apiKeySecret?: string;
+  /** Combined `key-id:key-secret` as shown on open.higgsfield.ai/api-keys */
+  apiCredentials?: string;
 };
 
 export function parseSoulImageJobFields(
@@ -42,6 +44,10 @@ export function parseSoulImageJobFields(
     typeof record.apiKeySecret === "string"
       ? record.apiKeySecret.trim()
       : undefined;
+  const apiCredentials =
+    typeof record.apiCredentials === "string"
+      ? record.apiCredentials.trim()
+      : undefined;
 
   return {
     ok: true,
@@ -50,6 +56,7 @@ export function parseSoulImageJobFields(
       aspectRatio: aspectRatio as AspectRatio,
       apiKeyId,
       apiKeySecret,
+      apiCredentials,
     },
   };
 }

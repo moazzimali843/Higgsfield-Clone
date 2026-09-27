@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s · Studio",
   },
   description:
-    "A small creative studio: pick an effect or start blank, generate, save to your library, and remix.",
+    "A small creative studio: create images and video, generate, and save to your library.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

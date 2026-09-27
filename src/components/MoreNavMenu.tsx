@@ -2,12 +2,24 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SidebarMoreIcon } from "@/components/StudioSidebarIcons";
 import { useHydratedPathname } from "@/hooks/use-hydrated-pathname";
 import { comingSoonNav } from "@/lib/navigation";
 
 const MENU_PANEL_ID = "studio-more-menu-panel";
 
-export function MoreNavMenu() {
+/** Expanded sidebar inner width: aside `15.5rem` minus horizontal `px-3`. */
+const SIDEBAR_MORE_MENU_WIDTH_CLASS = "w-[calc(15.5rem-1.5rem)]";
+
+type MoreNavMenuProps = {
+  variant?: "header" | "sidebar";
+  collapsed?: boolean;
+};
+
+export function MoreNavMenu({
+  variant = "header",
+  collapsed = false,
+}: MoreNavMenuProps) {
   const pathname = useHydratedPathname();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -34,38 +46,73 @@ export function MoreNavMenu() {
     };
   }, [open, close]);
 
+  const isSidebar = variant === "sidebar";
+  const activeStyle = isComingSoonActive || open;
+
   return (
     <div ref={rootRef} className="relative">
       <button
         type="button"
+        title={isSidebar && collapsed ? "More" : undefined}
         className={[
-          "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
-          isComingSoonActive || open
-            ? "bg-studio-accent/20 text-studio-accent-bright ring-1 ring-studio-accent/30"
-            : "text-studio-muted hover:bg-white/5 hover:text-studio-fg",
+          "studio-btn-nav",
+          isSidebar
+            ? [
+                collapsed ? "justify-center px-2 py-2.5" : "justify-between gap-1.5 px-3 py-2.5",
+              ].join(" ")
+            : "inline-flex w-auto gap-1.5 px-3 py-2",
+          activeStyle ? "studio-btn-nav--active" : "",
         ].join(" ")}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls={open ? MENU_PANEL_ID : undefined}
         onClick={() => setOpen((v) => !v)}
       >
-        More
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          aria-hidden
-          className={open ? "rotate-180 transition-transform" : "transition-transform"}
-        >
-          <path fill="currentColor" d="M2.5 4.5 6 8l3.5-3.5H2.5z" />
-        </svg>
+        {isSidebar ? (
+          collapsed ? (
+            <>
+              <SidebarMoreIcon />
+              <span className="pointer-events-none w-0 overflow-hidden opacity-0">
+                More
+              </span>
+            </>
+          ) : (
+            <span className="inline-flex min-w-0 flex-1 items-center gap-3">
+              <SidebarMoreIcon />
+              <span className="truncate">More</span>
+            </span>
+          )
+        ) : (
+          <span>More</span>
+        )}
+        {!isSidebar || !collapsed ? (
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            aria-hidden
+            className={
+              open ? "rotate-180 transition-transform" : "transition-transform"
+            }
+          >
+            <path fill="currentColor" d="M2.5 4.5 6 8l3.5-3.5H2.5z" />
+          </svg>
+        ) : null}
       </button>
 
       {open ? (
         <div
           id={MENU_PANEL_ID}
           role="menu"
-          className="studio-dropdown-enter absolute right-0 z-50 mt-2 w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border border-studio-border-subtle bg-studio-bg-elevated p-2 shadow-2xl shadow-black/50"
+          className={[
+            "absolute z-50 overflow-hidden rounded-xl border border-studio-border-subtle bg-white p-2 shadow-lg shadow-zinc-900/10",
+            isSidebar
+              ? [
+                  "studio-dropdown-enter top-full left-0 mt-2 max-h-[min(60vh,20rem)]",
+                  collapsed ? SIDEBAR_MORE_MENU_WIDTH_CLASS : "w-full",
+                ].join(" ")
+              : "studio-dropdown-enter right-0 mt-2 w-[min(100vw-2rem,20rem)]",
+          ].join(" ")}
         >
           <p className="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-studio-muted">
             Coming soon
@@ -79,10 +126,8 @@ export function MoreNavMenu() {
                     href={item.href}
                     role="menuitem"
                     className={[
-                      "flex items-center justify-between gap-2 rounded-lg px-2 py-2 text-sm transition-colors",
-                      isActive
-                        ? "bg-studio-accent/15 text-studio-accent-bright"
-                        : "text-studio-fg hover:bg-white/5",
+                      "studio-btn-menu-item items-center justify-between gap-2 px-2 py-2 text-sm text-studio-fg hover:bg-zinc-50",
+                      isActive ? "studio-btn-menu-item--selected" : "",
                     ].join(" ")}
                     onClick={close}
                   >
