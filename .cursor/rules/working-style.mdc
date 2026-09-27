@@ -7,3 +7,4 @@ alwaysApply: true
 - Tell me if I need to do anything.
 - After each step, recheck what you did for issues and edge cases.
 - Whereever needed, write the proper test cases and after building that feature run those test cases and fix if any issues found.
+- At the end of each feature code, check it for vercel deployment it should be a valid build.
