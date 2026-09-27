@@ -9,11 +9,6 @@ import { ShimmerBlock } from "@/components/ShimmerBlock";
 import { useHiggsfieldApiKey } from "@/components/HiggsfieldApiKeyProvider";
 import { useClientHydrated } from "@/hooks/use-client-hydrated";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
-import {
-  findLibraryGenerationById,
-  libraryHrefForGeneration,
-  recipeToComposerInitialValues,
-} from "@/lib/composer-remix";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
 import type {
   DemoImageJobResponse,
