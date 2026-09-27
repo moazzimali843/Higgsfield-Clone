@@ -5,13 +5,14 @@ import Image from "next/image";
 import { GenerationSourceBadge } from "@/components/GenerationSourceBadge";
 import { GenerationRecipePanel } from "@/components/GenerationRecipePanel";
 import { PreviewVideo } from "@/components/PreviewVideo";
+import { useMemo } from "react";
 import { useClientHydrated } from "@/hooks/use-client-hydrated";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
 import {
-  composerHrefForRemix,
   findLibraryGenerationById,
-} from "@/lib/composer-remix";
+  mergeSavedLibraryWithShowcase,
+} from "@/lib/studio-library";
 
 function formatCreatedAt(iso: string): string {
   try {
@@ -32,9 +33,13 @@ export function LibraryGenerationDetailClient({
   generationId,
 }: LibraryGenerationDetailClientProps) {
   const hydrated = useClientHydrated();
-  const { items } = useStudioLibrary();
+  const { items: savedItems } = useStudioLibrary();
+  const displayItems = useMemo(
+    () => mergeSavedLibraryWithShowcase(savedItems),
+    [savedItems],
+  );
   const generation = hydrated
-    ? findLibraryGenerationById(items, generationId)
+    ? findLibraryGenerationById(displayItems, generationId)
     : undefined;
 
   if (!hydrated) {
@@ -55,8 +60,7 @@ export function LibraryGenerationDetailClient({
           Generation not found
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-studio-muted">
-          This id is not in your browser library. It may have been cleared, or
-          you opened a link from another device.
+          This item is not in your library.
         </p>
         <Link
           href="/library"
@@ -86,7 +90,6 @@ export function LibraryGenerationDetailClient({
             <PreviewVideo
               src={generation.outputUrl}
               alt={generation.recipe.prompt.slice(0, 120) || "Generated video"}
-              autoplay={false}
             />
           ) : (
             <Image
@@ -118,12 +121,6 @@ export function LibraryGenerationDetailClient({
             />
           </div>
         </div>
-        <Link
-          href={composerHrefForRemix(generation.id)}
-          className="studio-btn-primary justify-center"
-        >
-          Remix in Image composer
-        </Link>
         <Link
           href="/library"
           className="text-center text-sm text-studio-accent hover:underline"

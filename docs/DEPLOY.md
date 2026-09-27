@@ -4,7 +4,7 @@
 
 Strangers should complete the **demo loop** without logging in:
 
-Home → Effects or Image → generate (Demo model) → Library → recipe → remix.
+Home → Image → generate (Demo model) → Library → recipe.
 
 That path uses `/api/demo/image` and `/api/demo/video` only (~2.2s per job).
 
@@ -19,17 +19,16 @@ For **local QA** when the preview URL requires Vercel login, use `npm run dev` o
 5. Deploy. Smoke-test the production URL logged out:
    - Image → Demo model → Generate
    - Library shows the result with a Demo badge
-   - Remix opens the composer with the recipe
    - Video → Demo model → Generate
 
 ## API keys in the UI
 
 - The header **API key** panel stores credentials in **session storage** (this tab only) for Soul v2 and Seedance 2.5.
-- Composers also accept keys per request; empty UI fields still allow server env vars in local dev (`.env.local`).
+- Image and Video pages also accept keys per request; empty UI fields still allow server env vars in local dev (`.env.local`).
 
 ## Soul v2 on production
 
-- Visitors paste **their own** key in the header panel or composer.
+- Visitors paste **their own** key in the sidebar panel or on the Image page.
 - **Submit** (`POST /api/higgsfield/image`) uploads an optional reference (max **4 MB**, under Vercel's [4.5 MB function body limit](https://vercel.com/docs/functions/limitations)), then starts the Higgsfield job.
 - **Poll** happens in the **browser**: repeated `POST /api/higgsfield/image/poll` calls with 2s–10s backoff (up to **120s** by default). Each poll is a short serverless invocation.
 - Optional env `HIGGSFIELD_CLIENT_POLL_MAX_WAIT_MS` (or legacy `HIGGSFIELD_POLL_MAX_WAIT_MS`) adjusts the client wait before a labeled demo fallback.

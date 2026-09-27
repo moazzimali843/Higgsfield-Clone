@@ -1,35 +1,47 @@
 import type { Metadata } from "next";
 import { StudioPageHeader } from "@/components/StudioPageHeader";
 import { VideoComposer } from "@/components/VideoComposer";
-import { getPreviewMedia } from "@/lib/preview-media";
-import { blankVideoComposerValues } from "@/lib/studio-recipe";
+import { resolveVideoComposerPageState } from "@/lib/composer-initial-values";
+import { firstQueryValue } from "@/lib/search-params";
+import { getPreviewGallery } from "@/lib/preview-media";
 
 export const metadata: Metadata = {
   title: "Video",
-  description: "Compose a short clip from a prompt and run a labeled demo job.",
+  description: "Create a short clip from a prompt and save it to your library.",
 };
 
-export default function VideoPage() {
-  const heroMedia = getPreviewMedia("/video");
+type VideoPageProps = {
+  searchParams: Promise<{
+    prompt?: string | string[];
+    aspectRatio?: string | string[];
+    modelId?: string | string[];
+  }>;
+};
+
+export default async function VideoPage({ searchParams }: VideoPageProps) {
+  const params = await searchParams;
+  const { initialValues } = resolveVideoComposerPageState({
+    prompt: firstQueryValue(params.prompt),
+    aspectRatio: firstQueryValue(params.aspectRatio),
+    modelId: firstQueryValue(params.modelId),
+  });
+  const heroGallery = getPreviewGallery("/video");
 
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-8">
       <StudioPageHeader
-        eyebrow="Video composer"
+        eyebrow="Video"
         title="Write the recipe"
-        description={
-          <>
-            Same compose and generate loop as Image: run Demo or Seedance 2.5 jobs
-            and keep finished clips in your browser library automatically.
-          </>
-        }
-        heroMedia={heroMedia}
+        description="Set your prompt and options, then create. Results save to your library."
+        heroGallery={heroGallery}
         heroAspectClass="aspect-video"
-        heroMaxWidth="max-w-md"
         heroMotion="loop"
       />
 
-      <VideoComposer initialValues={blankVideoComposerValues} />
+      <VideoComposer
+        key={`video-${initialValues.prompt.slice(0, 32)}-${initialValues.modelId}-${initialValues.aspectRatio}`}
+        initialValues={initialValues}
+      />
     </div>
   );
 }

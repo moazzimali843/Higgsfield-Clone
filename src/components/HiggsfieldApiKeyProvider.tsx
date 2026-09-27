@@ -14,12 +14,17 @@ import {
   readHiggsfieldApiKeySession,
   writeHiggsfieldApiKeySession,
 } from "@/lib/higgsfield-api-key-session";
+import {
+  formatHiggsfieldCredentialsString,
+  parseHiggsfieldCredentialsString,
+} from "@/lib/higgsfield-client";
 
 type HiggsfieldApiKeyContextValue = {
+  /** Full `key-id:key-secret` string from Higgsfield Console */
+  credentials: string;
+  setCredentials: (value: string) => void;
   apiKeyId: string;
   apiKeySecret: string;
-  setApiKeyId: (value: string) => void;
-  setApiKeySecret: (value: string) => void;
   saveToSession: () => boolean;
   clearSession: () => boolean;
   sessionError: string | null;
@@ -32,37 +37,43 @@ const HiggsfieldApiKeyContext = createContext<HiggsfieldApiKeyContextValue | nul
 );
 
 export function HiggsfieldApiKeyProvider({ children }: { children: ReactNode }) {
-  const [apiKeyId, setApiKeyId] = useState("");
-  const [apiKeySecret, setApiKeySecret] = useState("");
+  const [credentials, setCredentials] = useState("");
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+
+  const parsed = useMemo(
+    () => parseHiggsfieldCredentialsString(credentials),
+    [credentials],
+  );
+  const apiKeyId = parsed?.keyId ?? "";
+  const apiKeySecret = parsed?.keySecret ?? "";
 
   useEffect(() => {
     const loaded = readHiggsfieldApiKeySession();
     if (!loaded.ok) {
       setSessionError(loaded.error);
     } else if (loaded.value) {
-      setApiKeyId(loaded.value.keyId);
-      setApiKeySecret(loaded.value.keySecret);
+      setCredentials(formatHiggsfieldCredentialsString(loaded.value));
     }
     setHydrated(true);
   }, []);
 
   const saveToSession = useCallback(() => {
-    const keyId = apiKeyId.trim();
-    const keySecret = apiKeySecret.trim();
-    if (!keyId || !keySecret) {
-      setSessionError("Enter both key ID and secret before saving.");
+    const creds = parseHiggsfieldCredentialsString(credentials);
+    if (!creds) {
+      setSessionError(
+        "Paste credentials as key-id:key-secret (from open.higgsfield.ai/api-keys).",
+      );
       return false;
     }
-    const saved = writeHiggsfieldApiKeySession({ keyId, keySecret });
+    const saved = writeHiggsfieldApiKeySession(creds);
     if (!saved.ok) {
       setSessionError(saved.error);
       return false;
     }
     setSessionError(null);
     return true;
-  }, [apiKeyId, apiKeySecret]);
+  }, [credentials]);
 
   const clearSession = useCallback(() => {
     const cleared = clearHiggsfieldApiKeySession();
@@ -70,30 +81,31 @@ export function HiggsfieldApiKeyProvider({ children }: { children: ReactNode }) 
       setSessionError(cleared.error);
       return false;
     }
-    setApiKeyId("");
-    setApiKeySecret("");
+    setCredentials("");
     setSessionError(null);
     return true;
   }, []);
 
   const value = useMemo(
     (): HiggsfieldApiKeyContextValue => ({
+      credentials,
+      setCredentials,
       apiKeyId,
       apiKeySecret,
-      setApiKeyId,
-      setApiKeySecret,
       saveToSession,
       clearSession,
       sessionError,
-      isConnected: Boolean(apiKeyId.trim() && apiKeySecret.trim()),
+      isConnected: Boolean(parsed),
       hydrated,
     }),
     [
+      credentials,
       apiKeyId,
       apiKeySecret,
       saveToSession,
       clearSession,
       sessionError,
+      parsed,
       hydrated,
     ],
   );

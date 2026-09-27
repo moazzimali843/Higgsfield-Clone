@@ -10,12 +10,26 @@ import { useClientHydrated } from "@/hooks/use-client-hydrated";
 import { useMasonryColumnCount } from "@/hooks/use-masonry-column-count";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
-import { imageComposerHrefFromRecipe } from "@/lib/composer-remix-url";
 import type { LibraryGeneration } from "@/lib/generation-types";
+import {
+  libraryHrefForGeneration,
+  mergeSavedLibraryWithShowcase,
+} from "@/lib/studio-library";
+import {
+  getComposerModelById,
+  getVideoComposerModelById,
+} from "@/lib/studio-recipe";
 import {
   distributeToShortestColumns,
   estimatedLibraryCardHeight,
 } from "@/lib/library-masonry";
+
+function modelLabelForGeneration(item: LibraryGeneration): string {
+  if (item.mediaType === "video") {
+    return getVideoComposerModelById(item.recipe.modelId)?.label ?? item.recipe.modelId;
+  }
+  return getComposerModelById(item.recipe.modelId)?.label ?? item.recipe.modelId;
+}
 
 function formatCreatedAt(iso: string): string {
   try {
@@ -48,7 +62,6 @@ function LibraryGenerationCard({
           <PreviewVideo
             src={item.outputUrl}
             alt={item.recipe.prompt.slice(0, 120) || "Generated video"}
-            autoplay={false}
           />
         ) : (
           <Image
@@ -77,8 +90,8 @@ function LibraryGenerationCard({
           {item.recipe.prompt}
         </p>
         <p className="text-xs text-studio-muted">
-          {formatCreatedAt(item.createdAt)} · {item.mediaType} ·{" "}
-          {item.recipe.aspectRatio} · {item.recipe.modelId}
+          {formatCreatedAt(item.createdAt)} · {item.recipe.aspectRatio} ·{" "}
+          {modelLabelForGeneration(item)}
         </p>
         {item.recipe.referenceFileName ? (
           <p className="text-xs text-studio-muted">
@@ -87,10 +100,10 @@ function LibraryGenerationCard({
         ) : null}
         <div className="pt-1">
           <Link
-            href={imageComposerHrefFromRecipe(item.recipe)}
+            href={libraryHrefForGeneration(item.id)}
             className="text-sm font-medium text-studio-accent-bright hover:underline"
           >
-            Remix in Image composer
+            View recipe
           </Link>
         </div>
       </div>
@@ -102,7 +115,11 @@ function LibraryGenerationCard({
 
 export function LibraryPageClient() {
   const hydrated = useClientHydrated();
-  const { items } = useStudioLibrary();
+  const { items: savedItems } = useStudioLibrary();
+  const items = useMemo(
+    () => mergeSavedLibraryWithShowcase(savedItems),
+    [savedItems],
+  );
   const columnCount = useMasonryColumnCount();
   const columns = useMemo(
     () =>
@@ -119,28 +136,6 @@ export function LibraryPageClient() {
         aria-busy="true"
       >
         Loading your browser library…
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="studio-card mx-auto max-w-lg p-10 text-center">
-        <h2 className="studio-display text-lg font-semibold text-studio-fg">
-          No generations yet
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-studio-muted">
-          Run a demo job from the image or video composer. Results stay in this
-          browser only. No account and no server database.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Link href="/image" className="studio-btn-primary">
-            Open Image composer
-          </Link>
-          <Link href="/video" className="studio-btn-secondary">
-            Open Video composer
-          </Link>
-        </div>
       </div>
     );
   }
