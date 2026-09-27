@@ -1,20 +1,19 @@
 # Higgsfield Studio
 
-A browser-based creative studio inspired by [Higgsfield](https://higgsfield.ai/). Compose images and video, browse effect presets, keep a personal library with full generation recipes, and remix past work—all in one flow. This is an independent project, not an official Higgsfield product.
+A browser-based creative studio inspired by [Higgsfield](https://higgsfield.ai/). Create images and video, keep a personal library with full generation recipes—all in one flow. This is an independent project, not an official Higgsfield product.
 
 ## What you can do
 
 - **Home** — Overview and shortcuts into the studio.
-- **Effects** — Pick a preset look and open the image composer with prompt and settings already filled in.
 - **Image** — Write a prompt, adjust options, and generate images.
-- **Video** — Same compose → generate flow for short clips.
-- **Library** — See everything you created, inspect the recipe, and remix into the composer again.
+- **Video** — Create short clips from a prompt with the same generate → library flow.
+- **Library** — See everything you created and inspect each recipe.
 
 Several areas from the wider Higgsfield product map (Audio, 3D, Cinema Studio, and others) appear in the navigation as **Coming soon** placeholders.
 
-**Demo mode** works out of the box with no account and no API keys. Choose the demo model in the composers to try the full loop locally or on a deployed site.
+**Demo mode** works out of the box with no account and no API keys. Choose the demo model on Image or Video to try the full loop locally or on a deployed site.
 
-**Real generations** use your own [Higgsfield API credentials](https://higgsfield.ai/) via the **API key** control in the header (stored only in this browser tab) or optional fields on the image/video composers. Keys are never saved to the server or written to disk by the app.
+**Real generations** call the [Higgsfield API](https://docs.higgsfield.ai/docs) (Soul v2 images, Seedance 2.5 video) when you choose those models and paste credentials from [open.higgsfield.ai/api-keys](https://open.higgsfield.ai/api-keys) as `key-id:key-secret` in the sidebar **API key** control or on the Image page. Credentials stay in this browser tab’s session storage only; they are sent to this app’s server routes to call Higgsfield, never written to git.
 
 Your **library** is stored in this browser only (`localStorage`). Clearing site data or using another device starts a fresh library.
 
@@ -47,10 +46,9 @@ The app listens on [http://localhost:3000](http://localhost:3000) by default.
 
 ## Suggested first session
 
-1. Open **Effects**, choose a preset, and continue to the image composer.
-2. Leave the **Demo** model selected and generate.
-3. Open **Library**, open the new item, and use **Remix** to send the recipe back to the composer.
-4. Try **Video** with the demo model and confirm the clip appears in the library.
+1. Open **Image**, leave the **Demo** model selected, and generate.
+2. Open **Library** and open the new item to view its recipe.
+3. Try **Video** with the demo model and confirm the clip appears in the library.
 
 That path needs no API keys and matches what you get on a typical public deployment.
 
@@ -60,8 +58,9 @@ If you want the server to use Higgsfield credentials without pasting them in the
 
 | Variable | Purpose |
 |----------|---------|
-| `HIGGSFIELD_KEY_ID` | Higgsfield API key ID |
-| `HIGGSFIELD_KEY_SECRET` | Higgsfield API secret |
+| `HF_CREDENTIALS` or `HIGGSFIELD_CREDENTIALS` | Combined `key-id:key-secret` (same as the official SDKs) |
+| `HIGGSFIELD_KEY_ID` | Optional split key ID (with `HIGGSFIELD_KEY_SECRET`) |
+| `HIGGSFIELD_KEY_SECRET` | Optional split key secret |
 | `HIGGSFIELD_CLIENT_POLL_MAX_WAIT_MS` | How long the browser waits on real image jobs before falling back to demo (milliseconds; optional) |
 
 Restart `npm run dev` after changing `.env.local`.
@@ -75,7 +74,7 @@ This app is a standard [Next.js](https://nextjs.org/) project and deploys cleanl
 1. Push the repo to GitHub (or GitLab / Bitbucket).
 2. Import the repository in Vercel and accept the **Next.js** preset.
 3. Deploy without Higgsfield env vars unless you intentionally fund API usage for all visitors.
-4. After deploy, smoke-test while logged out: image demo generate → library → remix → video demo generate.
+4. After deploy, smoke-test while logged out: image demo generate → library → video demo generate.
 
 ## Scripts
 

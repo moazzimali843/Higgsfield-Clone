@@ -30,7 +30,7 @@ export function readHiggsfieldApiKeySession():
   } catch {
     return {
       ok: false,
-      error: "Browser storage is unavailable. Paste keys in the composer or use server env vars.",
+      error: "Browser storage is unavailable. Paste keys in the sidebar or use server env vars.",
     };
   }
 }

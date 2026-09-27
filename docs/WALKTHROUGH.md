@@ -6,14 +6,14 @@ Target: **under 5 minutes**, **camera on**, one take is fine. Show the **live Ve
 
 - What this is: a small Higgsfield-inspired studio, not a homepage clone.
 - What you cut: accounts, billing, Cinema/Marketing/Supercomputer products, etc.
-- What you kept: one compose → generate → library → remix loop, with honest **Coming soon** pages for the rest of their map.
+- What you kept: one create → generate → library loop, with honest **Coming soon** pages for the rest of their map.
 
 ## 2. Demo loop — image (~90s)
 
 - Open **Home** → **Effects** → pick a preset → lands in **Image** with the recipe filled.
 - Generate with **Demo** model; point out the **Demo** badge and pending → done states.
 - Open **Library** → open recipe (prompt, model, settings, demo vs real).
-- **Remix** back into the composer and generate again.
+- Open **Library** recipes to review prompt and settings.
 
 ## 3. Video (~45s)
 

@@ -11,8 +11,8 @@ type MediaPreviewProps = {
   priority?: boolean;
   showCredit?: boolean;
   /**
-   * loop — autoplay video when type is video (detail/hero; respects reduced motion).
-   * still — always show a still (cards/grids; avoids many simultaneous decoders).
+   * loop — autoplay video when type is video (respects reduced motion via poster).
+   * still — show poster/still for video (images are always still).
    */
   motion?: "loop" | "still";
 };
