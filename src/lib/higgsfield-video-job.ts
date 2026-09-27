@@ -4,8 +4,10 @@ import {
   fetchHiggsfieldStatus,
   firstVideoUrl,
   isAllowedHiggsfieldStatusUrl,
-  isHiggsfieldAuthOrAvailabilityError,
+  isHiggsfieldInsufficientCreditsError,
+  isHiggsfieldModelAvailabilityError,
   isTerminalHiggsfieldStatus,
+  mapHiggsfieldUpstreamJobError,
   resolveHiggsfieldCredentials,
   submitSeedanceTextToVideo,
   terminalStatusMessage,
@@ -110,6 +112,7 @@ export async function submitSeedanceVideoJob(
     {
       apiKeyId: input.apiKeyId,
       apiKeySecret: input.apiKeySecret,
+      apiCredentials: input.apiCredentials,
     },
     input.env,
   );
@@ -118,7 +121,7 @@ export async function submitSeedanceVideoJob(
       ok: false,
       status: 400,
       error:
-        "Add your Higgsfield API key ID and secret for Seedance 2.5, or switch to the Demo model.",
+        "Add your Higgsfield API credentials (key-id:key-secret from the console) for Seedance 2.5, or switch to the Demo model.",
     };
   }
 
@@ -126,7 +129,26 @@ export async function submitSeedanceVideoJob(
 
   const submitted = await submitSeedanceTextToVideo(creds, body);
   if (!submitted.ok) {
-    if (isHiggsfieldAuthOrAvailabilityError(submitted.status)) {
+    if (
+      isHiggsfieldInsufficientCreditsError(
+        submitted.status,
+        submitted.message,
+      )
+    ) {
+      const submitErr = mapHiggsfieldUpstreamJobError(
+        submitted.status,
+        submitted.message,
+      );
+      return {
+        ok: false,
+        status: submitErr.httpStatus,
+        error: submitErr.error,
+      };
+    }
+    if (submitted.status === 401) {
+      return { ok: false, status: 401, error: submitted.message };
+    }
+    if (isHiggsfieldModelAvailabilityError(submitted.status)) {
       return {
         ok: true,
         result: demoFallback(
@@ -136,7 +158,15 @@ export async function submitSeedanceVideoJob(
         ),
       };
     }
-    return { ok: false, status: 502, error: submitted.message };
+    const submitErr = mapHiggsfieldUpstreamJobError(
+      submitted.status,
+      submitted.message,
+    );
+    return {
+      ok: false,
+      status: submitErr.httpStatus,
+      error: submitErr.error,
+    };
   }
 
   if (!isAllowedHiggsfieldStatusUrl(submitted.submit.status_url)) {
@@ -191,6 +221,7 @@ export async function pollSeedanceVideoJobOnce(
     {
       apiKeyId: input.apiKeyId,
       apiKeySecret: input.apiKeySecret,
+      apiCredentials: input.apiCredentials,
     },
     input.env,
   );
@@ -199,7 +230,7 @@ export async function pollSeedanceVideoJobOnce(
       ok: false,
       status: 400,
       error:
-        "Add your Higgsfield API key ID and secret for Seedance 2.5, or switch to the Demo model.",
+        "Add your Higgsfield API credentials (key-id:key-secret from the console) for Seedance 2.5, or switch to the Demo model.",
     };
   }
 
@@ -227,10 +258,13 @@ export async function pollSeedanceVideoJobOnce(
 
   const polled = await fetchHiggsfieldStatus(input.statusUrl, creds);
   if (!polled.ok) {
+    if (polled.status === 401) {
+      return { ok: false, status: 401, error: polled.message };
+    }
     if (
       polled.status >= 500 ||
       polled.status === 0 ||
-      isHiggsfieldAuthOrAvailabilityError(polled.status)
+      isHiggsfieldModelAvailabilityError(polled.status)
     ) {
       return {
         ok: true,
@@ -241,7 +275,12 @@ export async function pollSeedanceVideoJobOnce(
         ),
       };
     }
-    return { ok: false, status: 502, error: polled.message };
+    const pollErr = mapHiggsfieldUpstreamJobError(polled.status, polled.message);
+    return {
+      ok: false,
+      status: pollErr.httpStatus,
+      error: pollErr.error,
+    };
   }
 
   const mapped = mapHiggsfieldStatusToVideoJob(polled.status, {

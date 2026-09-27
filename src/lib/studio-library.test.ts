@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { LibraryGeneration } from "@/lib/generation-types";
 import {
+  findLibraryGenerationById,
+  getLibraryShowcaseGenerations,
   LIBRARY_MAX_ITEMS,
+  libraryHrefForGeneration,
+  mergeSavedLibraryWithShowcase,
   parseLibraryJson,
   prependGeneration,
 } from "@/lib/studio-library";
@@ -60,6 +64,39 @@ describe("studio library storage helpers", () => {
     const items = parseLibraryJson(JSON.stringify([legacy]));
     assert.equal(items.length, 1);
     assert.equal(items[0]?.mediaType, "image");
+  });
+
+  it("finds generations by id and builds detail URLs", () => {
+    assert.equal(findLibraryGenerationById([sample], "gen-1"), sample);
+    assert.equal(findLibraryGenerationById([sample], "missing"), undefined);
+    assert.equal(
+      libraryHrefForGeneration("abc-123"),
+      "/library/abc-123",
+    );
+    assert.equal(
+      libraryHrefForGeneration("needs encode"),
+      "/library/needs%20encode",
+    );
+  });
+
+  it("merges saved items with image and video showcase catalog", () => {
+    const showcase = getLibraryShowcaseGenerations();
+    assert.ok(showcase.length >= 20);
+    const merged = mergeSavedLibraryWithShowcase([sample]);
+    assert.equal(merged[0]?.id, "gen-1");
+    assert.ok(merged.length > showcase.length);
+    const duplicateShowcaseUrl = showcase[0]!.outputUrl;
+    const savedWithShowcaseUrl: LibraryGeneration = {
+      ...sample,
+      id: "saved-dup",
+      outputUrl: duplicateShowcaseUrl,
+    };
+    const deduped = mergeSavedLibraryWithShowcase([savedWithShowcaseUrl]);
+    const showcaseMatches = deduped.filter(
+      (item) => item.outputUrl === duplicateShowcaseUrl,
+    );
+    assert.equal(showcaseMatches.length, 1);
+    assert.equal(showcaseMatches[0]?.id, "saved-dup");
   });
 
   it("prepends and caps list length", () => {

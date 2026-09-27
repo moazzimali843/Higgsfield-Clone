@@ -1,45 +1,17 @@
-import { getEffectPresetById } from "@/data/effect-presets";
 import {
   aspectRatioOptions,
   blankComposerValues,
+  blankVideoComposerValues,
   getComposerModelById,
+  getVideoComposerModelById,
   type AspectRatio,
   type ImageComposerInitialValues,
+  type VideoComposerInitialValues,
 } from "@/lib/studio-recipe";
 
 export type ComposerPageState = {
   initialValues: ImageComposerInitialValues;
-  presetName?: string;
-  unknownPresetId?: string;
 };
-
-export function resolveComposerFromPresetParam(
-  presetParam: string | undefined,
-): ComposerPageState {
-  if (!presetParam) {
-    return { initialValues: blankComposerValues };
-  }
-
-  const preset = getEffectPresetById(presetParam);
-  if (!preset) {
-    return {
-      initialValues: blankComposerValues,
-      unknownPresetId: presetParam,
-    };
-  }
-
-  const modelId =
-    getComposerModelById(preset.settings.modelId)?.id ?? "demo";
-
-  return {
-    presetName: preset.name,
-    initialValues: {
-      prompt: preset.prompt,
-      aspectRatio: preset.settings.aspectRatio,
-      modelId,
-    },
-  };
-}
 
 export type ComposerRemixQuery = {
   prompt?: string;
@@ -67,21 +39,60 @@ export function applyComposerRemixQuery(
 }
 
 export function resolveComposerPageState(
-  presetParam: string | undefined,
   remix: ComposerRemixQuery,
 ): ComposerPageState {
-  const fromPreset = resolveComposerFromPresetParam(presetParam);
+  const base = blankComposerValues;
   const hasRemix =
     remix.prompt !== undefined ||
     remix.aspectRatio !== undefined ||
     remix.modelId !== undefined;
 
   if (!hasRemix) {
-    return fromPreset;
+    return { initialValues: base };
   }
 
   return {
-    ...fromPreset,
-    initialValues: applyComposerRemixQuery(fromPreset.initialValues, remix),
+    initialValues: applyComposerRemixQuery(base, remix),
+  };
+}
+
+export type VideoComposerPageState = {
+  initialValues: VideoComposerInitialValues;
+};
+
+export function applyVideoComposerRemixQuery(
+  base: VideoComposerInitialValues,
+  remix: ComposerRemixQuery,
+): VideoComposerInitialValues {
+  const prompt =
+    remix.prompt !== undefined ? remix.prompt : base.prompt;
+  const aspectRatio =
+    remix.aspectRatio &&
+    aspectRatioOptions.includes(remix.aspectRatio as AspectRatio)
+      ? (remix.aspectRatio as AspectRatio)
+      : base.aspectRatio;
+  const modelId =
+    remix.modelId && getVideoComposerModelById(remix.modelId)
+      ? remix.modelId
+      : base.modelId;
+
+  return { prompt, aspectRatio, modelId };
+}
+
+export function resolveVideoComposerPageState(
+  remix: ComposerRemixQuery,
+): VideoComposerPageState {
+  const base = blankVideoComposerValues;
+  const hasRemix =
+    remix.prompt !== undefined ||
+    remix.aspectRatio !== undefined ||
+    remix.modelId !== undefined;
+
+  if (!hasRemix) {
+    return { initialValues: base };
+  }
+
+  return {
+    initialValues: applyVideoComposerRemixQuery(base, remix),
   };
 }

@@ -6,7 +6,7 @@ type PreviewVideoProps = {
   src: string;
   poster?: string;
   alt: string;
-  /** Grid/list thumbnails should not autoplay (many decoders + motion). Default on for hero/result. */
+  /** When false, shows first frame only (metadata preload). Default: autoplay, muted, loop. */
   autoplay?: boolean;
 };
 

@@ -1,5 +1,4 @@
 import { DemoBadge } from "@/components/DemoBadge";
-import { getEffectPresetById } from "@/data/effect-presets";
 import type { LibraryGeneration } from "@/lib/generation-types";
 import { getComposerModelById } from "@/lib/studio-recipe";
 
@@ -28,9 +27,6 @@ export function GenerationRecipePanel({
       label: recipe.modelId,
       description: "",
     };
-  const effectPreset = recipe.effectPresetId
-    ? getEffectPresetById(recipe.effectPresetId)
-    : undefined;
 
   return (
     <dl className="flex flex-col gap-4 text-sm">
@@ -57,9 +53,6 @@ export function GenerationRecipePanel({
             Model
           </dt>
           <dd className="mt-1 text-studio-fg">{model.label}</dd>
-          {model.description ? (
-            <p className="mt-1 text-xs text-studio-muted">{model.description}</p>
-          ) : null}
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-studio-muted">
@@ -69,24 +62,12 @@ export function GenerationRecipePanel({
         </div>
       </div>
 
-      {effectPreset ? (
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-studio-muted">
-            Effect preset
-          </dt>
-          <dd className="mt-1 text-studio-fg">{effectPreset.name}</dd>
-        </div>
-      ) : null}
-
       {recipe.referenceFileName ? (
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-studio-muted">
             Reference image
           </dt>
           <dd className="mt-1 text-studio-fg">{recipe.referenceFileName}</dd>
-          <p className="mt-1 text-xs text-studio-muted">
-            Filename only. Re-attach the file in the composer if you remix.
-          </p>
         </div>
       ) : null}
 

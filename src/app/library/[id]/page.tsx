@@ -25,8 +25,7 @@ export default async function LibraryGenerationPage({
           Recipe
         </h1>
         <p className="mt-4 text-base leading-relaxed text-studio-muted">
-          Prompt, model, settings, and whether the output was a labeled demo.
-          Remix sends these values back to the image composer.
+          Prompt, model, and options used for this generation.
         </p>
       </header>
 

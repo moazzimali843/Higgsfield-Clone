@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
+import { readHiggsfieldServerEnv } from "@/lib/higgsfield-client";
 import { pollSoulV2ImageJobOnce } from "@/lib/higgsfield-image-job";
 import { parseSoulImagePollJson } from "@/lib/higgsfield-request";
+import { requireStudioUserForGeneration } from "@/lib/supabase/require-studio-user";
 
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
+  const auth = await requireStudioUserForGeneration();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -22,10 +29,7 @@ export async function POST(request: Request) {
 
   const job = await pollSoulV2ImageJobOnce({
     ...parsed.value,
-    env: {
-      HIGGSFIELD_KEY_ID: process.env.HIGGSFIELD_KEY_ID,
-      HIGGSFIELD_KEY_SECRET: process.env.HIGGSFIELD_KEY_SECRET,
-    },
+    env: readHiggsfieldServerEnv(),
   });
   if (!job.ok) {
     return NextResponse.json({ error: job.error }, { status: job.status });

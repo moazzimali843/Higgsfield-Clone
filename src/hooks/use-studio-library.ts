@@ -4,21 +4,28 @@ import { useCallback, useSyncExternalStore } from "react";
 import type { LibraryGeneration } from "@/lib/generation-types";
 import {
   appendStudioLibraryGeneration,
-  getStudioLibraryServerSnapshot,
-  getStudioLibrarySnapshot,
+  getStudioLibraryStoreServerSnapshot,
+  getStudioLibraryStoreSnapshot,
   subscribeStudioLibrary,
 } from "@/lib/studio-library-client";
 
 export function useStudioLibrary() {
-  const items = useSyncExternalStore(
+  const store = useSyncExternalStore(
     subscribeStudioLibrary,
-    getStudioLibrarySnapshot,
-    getStudioLibraryServerSnapshot,
+    getStudioLibraryStoreSnapshot,
+    getStudioLibraryStoreServerSnapshot,
   );
 
   const append = useCallback((generation: LibraryGeneration) => {
     return appendStudioLibraryGeneration(generation);
   }, []);
 
-  return { items, append };
+  return {
+    items: store.items,
+    loading: store.loading,
+    error: store.error,
+    hydrated: store.hydrated,
+    cloudMode: store.cloudMode,
+    append,
+  };
 }

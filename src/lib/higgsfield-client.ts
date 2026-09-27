@@ -21,7 +21,42 @@ export type HiggsfieldCredentials = {
 export type HiggsfieldEnv = {
   HIGGSFIELD_KEY_ID?: string;
   HIGGSFIELD_KEY_SECRET?: string;
+  /** `key-id:key-secret` — matches HF_CREDENTIALS / HF_KEY in official SDKs */
+  HIGGSFIELD_CREDENTIALS?: string;
 };
+
+/** Server env vars for API routes (Next.js `process.env`). */
+export function readHiggsfieldServerEnv(): HiggsfieldEnv {
+  return {
+    HIGGSFIELD_KEY_ID: process.env.HIGGSFIELD_KEY_ID,
+    HIGGSFIELD_KEY_SECRET: process.env.HIGGSFIELD_KEY_SECRET,
+    HIGGSFIELD_CREDENTIALS:
+      process.env.HIGGSFIELD_CREDENTIALS ?? process.env.HF_CREDENTIALS,
+  };
+}
+
+/**
+ * Parse credentials copied from Higgsfield Console / open.higgsfield.ai/api-keys.
+ * Format: `your-api-key-id:your-api-key-secret`
+ */
+export function parseHiggsfieldCredentialsString(
+  raw: string,
+): HiggsfieldCredentials | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const colon = trimmed.indexOf(":");
+  if (colon <= 0 || colon >= trimmed.length - 1) return null;
+  const keyId = trimmed.slice(0, colon).trim();
+  const keySecret = trimmed.slice(colon + 1).trim();
+  if (!keyId || !keySecret) return null;
+  return { keyId, keySecret };
+}
+
+export function formatHiggsfieldCredentialsString(
+  creds: HiggsfieldCredentials,
+): string {
+  return `${creds.keyId}:${creds.keySecret}`;
+}
 
 export type HiggsfieldTerminalStatus =
   | "completed"
@@ -58,15 +93,30 @@ export type HiggsfieldUploadUrlResponse = {
 };
 
 export function resolveHiggsfieldCredentials(
-  input: { apiKeyId?: string; apiKeySecret?: string },
+  input: {
+    apiKeyId?: string;
+    apiKeySecret?: string;
+    apiCredentials?: string;
+  },
   env: HiggsfieldEnv,
 ): HiggsfieldCredentials | null {
+  const fromCombined =
+    input.apiCredentials?.trim() &&
+    parseHiggsfieldCredentialsString(input.apiCredentials);
+  if (fromCombined) return fromCombined;
+
   const uiKeyId = input.apiKeyId?.trim();
   const uiKeySecret = input.apiKeySecret?.trim();
 
   if (uiKeyId || uiKeySecret) {
     if (!uiKeyId || !uiKeySecret) return null;
     return { keyId: uiKeyId, keySecret: uiKeySecret };
+  }
+
+  const envCombined = env.HIGGSFIELD_CREDENTIALS?.trim();
+  if (envCombined) {
+    const parsed = parseHiggsfieldCredentialsString(envCombined);
+    if (parsed) return parsed;
   }
 
   const keyId = env.HIGGSFIELD_KEY_ID?.trim();
@@ -121,9 +171,85 @@ export function isTerminalHiggsfieldStatus(
   );
 }
 
-/** HTTP statuses where we fall back to demo with an explanation (Phase 7.2). */
+/** Model or account access issues — demo fallback is acceptable when the real API cannot run. */
+export function isHiggsfieldModelAvailabilityError(status: number): boolean {
+  return status === 404 || status === 423 || status === 503;
+}
+
+/** @deprecated Use isHiggsfieldModelAvailabilityError; 401 should surface to the user. */
 export function isHiggsfieldAuthOrAvailabilityError(status: number): boolean {
-  return status === 401 || status === 404 || status === 423 || status === 503;
+  return status === 401 || isHiggsfieldModelAvailabilityError(status);
+}
+
+export const HIGGSFIELD_INSUFFICIENT_CREDITS_USER_MESSAGE =
+  "Not enough credits for this job. Add credits to your account or switch to Demo.";
+
+export function isHiggsfieldInsufficientCreditsError(
+  status: number,
+  message: string,
+): boolean {
+  const normalized = message.trim().toLowerCase();
+  if (
+    normalized === "not_enough_credits" ||
+    normalized.includes("not enough credits") ||
+    normalized.includes("insufficient balance")
+  ) {
+    return true;
+  }
+  return status === 402 || status === 403;
+}
+
+/** Turn upstream codes into copy suitable for the UI. */
+export function userFacingHiggsfieldErrorMessage(message: string): string {
+  if (isHiggsfieldInsufficientCreditsError(0, message)) {
+    return HIGGSFIELD_INSUFFICIENT_CREDITS_USER_MESSAGE;
+  }
+  return message;
+}
+
+/** Map upstream Higgsfield HTTP errors to API route status + user-facing text. */
+export function mapHiggsfieldUpstreamJobError(
+  status: number,
+  message: string,
+): { httpStatus: number; error: string } {
+  if (status === 401) {
+    return { httpStatus: 401, error: message };
+  }
+  if (isHiggsfieldInsufficientCreditsError(status, message)) {
+    return {
+      httpStatus: 402,
+      error: HIGGSFIELD_INSUFFICIENT_CREDITS_USER_MESSAGE,
+    };
+  }
+  return { httpStatus: 502, error: message };
+}
+
+export function higgsfieldErrorMessageFromPayload(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const record = payload as Record<string, unknown>;
+  if (typeof record.message === "string" && record.message.trim()) {
+    return record.message.trim();
+  }
+  if (typeof record.error === "string" && record.error.trim()) {
+    return record.error.trim();
+  }
+  if (typeof record.detail === "string" && record.detail.trim()) {
+    return record.detail.trim();
+  }
+  if (Array.isArray(record.detail)) {
+    const parts = record.detail
+      .map((entry) => {
+        if (typeof entry === "string") return entry;
+        if (entry && typeof entry === "object" && "msg" in entry) {
+          const msg = (entry as { msg?: unknown }).msg;
+          return typeof msg === "string" ? msg : null;
+        }
+        return null;
+      })
+      .filter((part): part is string => Boolean(part));
+    if (parts.length > 0) return parts.join(" ");
+  }
+  return null;
 }
 
 export function terminalStatusMessage(status: HiggsfieldTerminalStatus): string {
@@ -165,12 +291,8 @@ export async function higgsfieldFetchJson<T>(
 
     if (!response.ok) {
       const message =
-        payload &&
-        typeof payload === "object" &&
-        "message" in payload &&
-        typeof (payload as { message: unknown }).message === "string"
-          ? (payload as { message: string }).message
-          : `Higgsfield request failed (${response.status}).`;
+        higgsfieldErrorMessageFromPayload(payload) ??
+        `Higgsfield request failed (${response.status}).`;
       return { ok: false, status: response.status, message };
     }
 
@@ -343,7 +465,15 @@ export function firstImageUrl(result: HiggsfieldStatusResponse): string | null {
 
 export function firstVideoUrl(result: HiggsfieldStatusResponse): string | null {
   const url = result.video?.url;
-  return typeof url === "string" && url.length > 0 ? url : null;
+  if (typeof url === "string" && url.length > 0) return url;
+
+  const record = result as HiggsfieldStatusResponse & {
+    jobs?: Array<{
+      results?: { raw?: { url?: string } };
+    }>;
+  };
+  const sdkUrl = record.jobs?.[0]?.results?.raw?.url;
+  return typeof sdkUrl === "string" && sdkUrl.length > 0 ? sdkUrl : null;
 }
 
 export function buildSeedanceTextToVideoBody(
