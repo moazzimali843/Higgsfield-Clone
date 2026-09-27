@@ -56,6 +56,14 @@ export function ImageComposer({ initialValues }: ImageComposerProps) {
   const [jobResult, setJobResult] = useState<ImageJobResponse | null>(null);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
   const { items, append } = useStudioLibrary();
+  const remixGeneration =
+    hydrated && remixGenerationId
+      ? findLibraryGenerationById(items, remixGenerationId)
+      : undefined;
+  const remixAppliedRef = useRef<string | null>(null);
+
+  const recipeEffectPresetId =
+    effectPresetId ?? remixGeneration?.recipe.effectPresetId;
 
   useEffect(() => {
     setPrompt(initialValues.prompt);
@@ -74,6 +82,17 @@ export function ImageComposer({ initialValues }: ImageComposerProps) {
     setEstimate(null);
     setEstimatePhase("idle");
     setEstimateError(null);
+  }
+
+  function clearReference() {
+    if (reference?.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(reference.previewUrl);
+    }
+    setReference(null);
+    setReferenceFile(null);
+    setReferenceError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    resetEstimate();
   }
 
   useEffect(() => {
