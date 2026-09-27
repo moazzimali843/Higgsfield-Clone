@@ -5,8 +5,10 @@ import {
   fetchHiggsfieldStatus,
   firstImageUrl,
   isAllowedHiggsfieldStatusUrl,
-  isHiggsfieldAuthOrAvailabilityError,
+  isHiggsfieldInsufficientCreditsError,
+  isHiggsfieldModelAvailabilityError,
   isTerminalHiggsfieldStatus,
+  mapHiggsfieldUpstreamJobError,
   resolveHiggsfieldCredentials,
   submitSoulV2Standard,
   terminalStatusMessage,
@@ -119,6 +121,7 @@ export async function submitSoulV2ImageJob(
     {
       apiKeyId: input.apiKeyId,
       apiKeySecret: input.apiKeySecret,
+      apiCredentials: input.apiCredentials,
     },
     input.env,
   );
@@ -127,7 +130,7 @@ export async function submitSoulV2ImageJob(
       ok: false,
       status: 400,
       error:
-        "Add your Higgsfield API key ID and secret for a real Soul render, or switch to the Demo model.",
+        "Add your Higgsfield API credentials (key-id:key-secret from the console) for Soul v2, or switch to the Demo model.",
     };
   }
 
@@ -135,7 +138,10 @@ export async function submitSoulV2ImageJob(
   if (input.reference) {
     const uploaded = await uploadReferenceToHiggsfield(creds, input.reference);
     if (!uploaded.ok) {
-      if (isHiggsfieldAuthOrAvailabilityError(uploaded.status)) {
+      if (uploaded.status === 401) {
+        return { ok: false, status: 401, error: uploaded.message };
+      }
+      if (isHiggsfieldModelAvailabilityError(uploaded.status)) {
         return {
           ok: true,
           result: demoFallback(
@@ -145,7 +151,15 @@ export async function submitSoulV2ImageJob(
           ),
         };
       }
-      return { ok: false, status: 502, error: uploaded.message };
+      const uploadErr = mapHiggsfieldUpstreamJobError(
+        uploaded.status,
+        uploaded.message,
+      );
+      return {
+        ok: false,
+        status: uploadErr.httpStatus,
+        error: uploadErr.error,
+      };
     }
     imageUrl = uploaded.publicUrl;
   }
@@ -156,7 +170,21 @@ export async function submitSoulV2ImageJob(
 
   const submitted = await submitSoulV2Standard(creds, body);
   if (!submitted.ok) {
-    if (isHiggsfieldAuthOrAvailabilityError(submitted.status)) {
+    if (isHiggsfieldInsufficientCreditsError(submitted.status, submitted.message)) {
+      const submitErr = mapHiggsfieldUpstreamJobError(
+        submitted.status,
+        submitted.message,
+      );
+      return {
+        ok: false,
+        status: submitErr.httpStatus,
+        error: submitErr.error,
+      };
+    }
+    if (submitted.status === 401) {
+      return { ok: false, status: 401, error: submitted.message };
+    }
+    if (isHiggsfieldModelAvailabilityError(submitted.status)) {
       return {
         ok: true,
         result: demoFallback(
@@ -166,7 +194,15 @@ export async function submitSoulV2ImageJob(
         ),
       };
     }
-    return { ok: false, status: 502, error: submitted.message };
+    const submitErr = mapHiggsfieldUpstreamJobError(
+      submitted.status,
+      submitted.message,
+    );
+    return {
+      ok: false,
+      status: submitErr.httpStatus,
+      error: submitErr.error,
+    };
   }
 
   if (!isAllowedHiggsfieldStatusUrl(submitted.submit.status_url)) {
@@ -223,6 +259,7 @@ export async function pollSoulV2ImageJobOnce(
     {
       apiKeyId: input.apiKeyId,
       apiKeySecret: input.apiKeySecret,
+      apiCredentials: input.apiCredentials,
     },
     input.env,
   );
@@ -231,7 +268,7 @@ export async function pollSoulV2ImageJobOnce(
       ok: false,
       status: 400,
       error:
-        "Add your Higgsfield API key ID and secret for a real Soul render, or switch to the Demo model.",
+        "Add your Higgsfield API credentials (key-id:key-secret from the console) for Soul v2, or switch to the Demo model.",
     };
   }
 
@@ -259,10 +296,13 @@ export async function pollSoulV2ImageJobOnce(
 
   const polled = await fetchHiggsfieldStatus(input.statusUrl, creds);
   if (!polled.ok) {
+    if (polled.status === 401) {
+      return { ok: false, status: 401, error: polled.message };
+    }
     if (
       polled.status >= 500 ||
       polled.status === 0 ||
-      isHiggsfieldAuthOrAvailabilityError(polled.status)
+      isHiggsfieldModelAvailabilityError(polled.status)
     ) {
       return {
         ok: true,
@@ -273,7 +313,12 @@ export async function pollSoulV2ImageJobOnce(
         ),
       };
     }
-    return { ok: false, status: 502, error: polled.message };
+    const pollErr = mapHiggsfieldUpstreamJobError(polled.status, polled.message);
+    return {
+      ok: false,
+      status: pollErr.httpStatus,
+      error: pollErr.error,
+    };
   }
 
   const mapped = mapHiggsfieldStatusToImageJob(polled.status, {
@@ -297,6 +342,7 @@ export async function fetchSoulV2Estimate(
     {
       apiKeyId: fields.apiKeyId,
       apiKeySecret: fields.apiKeySecret,
+      apiCredentials: fields.apiCredentials,
     },
     env,
   );
@@ -304,7 +350,8 @@ export async function fetchSoulV2Estimate(
     return {
       ok: false,
       status: 400,
-      error: "API key ID and secret are required to estimate cost.",
+      error:
+        "API credentials (key-id:key-secret) are required to estimate cost.",
     };
   }
 
@@ -313,10 +360,14 @@ export async function fetchSoulV2Estimate(
   });
   const estimate = await estimateSoulV2Standard(creds, body);
   if (!estimate.ok) {
+    const estimateErr = mapHiggsfieldUpstreamJobError(
+      estimate.status,
+      estimate.message,
+    );
     return {
       ok: false,
-      status: estimate.status === 401 ? 401 : 502,
-      error: estimate.message,
+      status: estimateErr.httpStatus,
+      error: estimateErr.error,
     };
   }
 

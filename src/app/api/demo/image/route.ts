@@ -4,8 +4,14 @@ import {
   parseDemoImageJobRequest,
   runDemoImageJob,
 } from "@/lib/demo-image-job";
+import { requireStudioUserForGeneration } from "@/lib/supabase/require-studio-user";
 
 export async function POST(request: Request) {
+  const auth = await requireStudioUserForGeneration();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   let body: unknown;
   try {
     body = await request.json();

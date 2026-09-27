@@ -23,13 +23,12 @@ export function VisualFeatureCard({
   const mediaFront = media ? (
     <MediaPreview
       media={media}
-      motion="still"
       aspectClass="aspect-[16/10] h-full min-h-full"
       showCredit={false}
       className="h-full min-h-full rounded-none"
     />
   ) : (
-    <div className="h-full min-h-full bg-[#12121a]" />
+    <div className="h-full min-h-full bg-zinc-100" />
   );
 
   const mediaBack = (
@@ -48,7 +47,7 @@ export function VisualFeatureCard({
       <Link
         href={item.href}
         className={[
-          "studio-card studio-card-interactive studio-border-glow-card group/card flex h-full flex-col overflow-hidden",
+          "studio-card studio-card-interactive group/card flex h-full flex-col overflow-hidden",
           featured ? "studio-neo-soft" : "",
         ]
           .filter(Boolean)
@@ -61,11 +60,11 @@ export function VisualFeatureCard({
         />
         <div className="studio-card-body flex flex-1 flex-col p-5">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="studio-display text-lg font-semibold text-studio-fg transition-colors group-hover/card:text-studio-accent-bright">
+            <h3 className="studio-display text-lg font-semibold text-studio-fg transition-colors group-hover/card:text-zinc-700">
               {item.label}
             </h3>
             {badge ? (
-              <span className="shrink-0 rounded-md bg-[#16161f] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-studio-muted ring-1 ring-studio-border-subtle">
+              <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-studio-muted ring-1 ring-studio-border-subtle">
                 {badge}
               </span>
             ) : null}
@@ -75,7 +74,7 @@ export function VisualFeatureCard({
               {item.description}
             </p>
           ) : null}
-          <span className="mt-5 text-sm font-medium text-studio-accent-bright">
+          <span className="mt-5 text-sm font-medium text-studio-fg">
             {footer}
           </span>
         </div>

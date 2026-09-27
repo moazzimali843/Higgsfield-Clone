@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { parseExcludeOutputUrls } from "@/lib/demo-image-job";
 import { submitSoulV2ImageJob } from "@/lib/higgsfield-image-job";
+import { requireStudioUserForGeneration } from "@/lib/supabase/require-studio-user";
 import { REFERENCE_IMAGE_MAX_BYTES, REFERENCE_IMAGE_MAX_LABEL } from "@/lib/reference-image";
+import { readHiggsfieldServerEnv } from "@/lib/higgsfield-client";
 import {
   parseExcludeOutputUrlsField,
   parseSoulImageJobFields,
@@ -12,6 +14,11 @@ import {
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const auth = await requireStudioUserForGeneration();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   const contentType = request.headers.get("content-type") ?? "";
 
   if (contentType.includes("multipart/form-data")) {
@@ -30,6 +37,7 @@ export async function POST(request: Request) {
       aspectRatio: form.get("aspectRatio"),
       apiKeyId: form.get("apiKeyId"),
       apiKeySecret: form.get("apiKeySecret"),
+      apiCredentials: form.get("apiCredentials"),
     });
     if (!fields.ok) {
       return NextResponse.json({ error: fields.error }, { status: 400 });
@@ -70,10 +78,7 @@ export async function POST(request: Request) {
       ...fields.value,
       reference,
       excludeOutputUrls,
-      env: {
-        HIGGSFIELD_KEY_ID: process.env.HIGGSFIELD_KEY_ID,
-        HIGGSFIELD_KEY_SECRET: process.env.HIGGSFIELD_KEY_SECRET,
-      },
+      env: readHiggsfieldServerEnv(),
     });
     if (!job.ok) {
       return NextResponse.json({ error: job.error }, { status: job.status });
@@ -105,10 +110,7 @@ export async function POST(request: Request) {
   const job = await submitSoulV2ImageJob({
     ...parsed.value,
     excludeOutputUrls,
-    env: {
-      HIGGSFIELD_KEY_ID: process.env.HIGGSFIELD_KEY_ID,
-      HIGGSFIELD_KEY_SECRET: process.env.HIGGSFIELD_KEY_SECRET,
-    },
+    env: readHiggsfieldServerEnv(),
   });
   if (!job.ok) {
     return NextResponse.json({ error: job.error }, { status: job.status });

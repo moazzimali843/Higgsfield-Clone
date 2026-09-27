@@ -1,6 +1,6 @@
 import type { AspectRatio } from "@/lib/studio-recipe";
 
-/** Rough footer height relative to one column width (prompt, meta, remix link). */
+/** Rough footer height relative to one column width (prompt, meta, recipe link). */
 const FOOTER_HEIGHT = 1.65;
 const REFERENCE_LINE_HEIGHT = 0.35;
 
