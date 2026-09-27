@@ -16,10 +16,11 @@ For **local QA** when the preview URL requires Vercel login, use `npm run dev` o
 2. In [Vercel](https://vercel.com/new), import the repository ([deploying from Git](https://vercel.com/docs/deployments)).
 3. Framework preset: **Next.js** (defaults are fine).
 4. **Do not** add `HIGGSFIELD_KEY_ID` / `HIGGSFIELD_KEY_SECRET` on the public production project unless you intend to fund strangers' API jobs.
-5. Deploy. Smoke-test the production URL logged out:
+5. Deploy. Smoke-test the production URL **logged out** (required reviewer path):
    - Image → Demo model → Generate
    - Library shows the result with a Demo badge
    - Video → Demo model → Generate
+6. **Optional:** add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, run the SQL in [`docs/SUPABASE.md`](./SUPABASE.md), then smoke-test sign-up → verify email → sign in → generate → library persists after refresh.
 
 ## API keys in the UI
 

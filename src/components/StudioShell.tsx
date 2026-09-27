@@ -2,8 +2,14 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { HiggsfieldApiKeyPanel } from "@/components/HiggsfieldApiKeyPanel";
 import { HiggsfieldApiKeyProvider } from "@/components/HiggsfieldApiKeyProvider";
+import { StudioAuthPanel } from "@/components/StudioAuthPanel";
+import {
+  SupabaseAuthProvider,
+  useSupabaseAuth,
+} from "@/components/SupabaseAuthProvider";
 import { StudioCreateProvider } from "@/components/StudioCreateProvider";
 import { MoreNavMenu } from "@/components/MoreNavMenu";
 import {
@@ -13,6 +19,52 @@ import {
 import { useHydratedPathname } from "@/hooks/use-hydrated-pathname";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 import { liveNav } from "@/lib/navigation";
+import {
+  isStudioSignInRequired,
+  shouldShowStudioApiKeyPanel,
+  shouldShowStudioApiKeyPanelLoading,
+} from "@/lib/studio-auth-gate";
+
+function StudioSidebarFooter({ collapsed }: { collapsed: boolean }) {
+  const { user, loading } = useSupabaseAuth();
+  const signInRequired = isStudioSignInRequired();
+  const showPanel = shouldShowStudioApiKeyPanel({
+    signInRequired,
+    user,
+    authLoading: loading,
+  });
+  const showLoading = shouldShowStudioApiKeyPanelLoading({
+    signInRequired,
+    user,
+    authLoading: loading,
+  });
+
+  if (!showPanel && !showLoading) {
+    return null;
+  }
+
+  return (
+    <div
+      className={[
+        "mt-auto border-t border-studio-border-subtle py-4",
+        collapsed ? "px-2" : "px-3",
+      ].join(" ")}
+    >
+      {showLoading ? (
+        <div
+          className="h-10 w-full animate-pulse rounded-xl border border-studio-border-subtle bg-zinc-100"
+          aria-hidden
+        />
+      ) : (
+        <HiggsfieldApiKeyPanel
+          variant="sidebar"
+          collapsed={collapsed}
+          dropDirection="up"
+        />
+      )}
+    </div>
+  );
+}
 
 function sidebarLinkClass(isActive: boolean, collapsed: boolean) {
   return [
@@ -22,13 +74,35 @@ function sidebarLinkClass(isActive: boolean, collapsed: boolean) {
   ].join(" ");
 }
 
+function AuthShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
+      <main className="w-full max-w-md">{children}</main>
+    </div>
+  );
+}
+
 export function StudioShell({ children }: { children: React.ReactNode }) {
   const pathname = useHydratedPathname();
+  const pathnameNow = usePathname();
+  const isLoginPage =
+    pathnameNow === "/login" || pathnameNow.startsWith("/login/");
   const { collapsed, toggleCollapsed, ready } = useSidebarCollapsed();
 
   const sidebarWidth = collapsed ? "w-[4.25rem]" : "w-[15.5rem]";
 
+  if (isLoginPage) {
+    return (
+      <SupabaseAuthProvider>
+        <HiggsfieldApiKeyProvider>
+          <AuthShell>{children}</AuthShell>
+        </HiggsfieldApiKeyProvider>
+      </SupabaseAuthProvider>
+    );
+  }
+
   return (
+    <SupabaseAuthProvider>
     <HiggsfieldApiKeyProvider>
       <div className="flex min-h-full">
         <aside
@@ -135,22 +209,16 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
 
-          <div
-            className={[
-              "mt-auto border-t border-studio-border-subtle py-4",
-              collapsed ? "px-2" : "px-3",
-            ].join(" ")}
-          >
-            <HiggsfieldApiKeyPanel
-              variant="sidebar"
-              collapsed={collapsed}
-              dropDirection="up"
-            />
-          </div>
+          <StudioSidebarFooter collapsed={collapsed} />
         </aside>
 
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <main className="relative z-0 mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pb-12 lg:pt-8">
+          <header
+            className="sticky top-0 z-40 flex shrink-0 items-center justify-end bg-white/90 px-4 py-2 backdrop-blur-md sm:px-6 lg:px-8"
+          >
+            <StudioAuthPanel variant="header" />
+          </header>
+          <main className="relative z-0 mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pb-10 pt-2 sm:px-6 lg:px-8 lg:pb-12 lg:pt-3">
             <Suspense fallback={null}>
               <StudioCreateProvider>{children}</StudioCreateProvider>
             </Suspense>
@@ -159,5 +227,6 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </HiggsfieldApiKeyProvider>
+    </SupabaseAuthProvider>
   );
 }

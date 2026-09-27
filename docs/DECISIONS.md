@@ -9,8 +9,8 @@ Short record of choices for this repo so we do not relitigate them mid-build. Al
 | Framework | **Next.js + TypeScript** | One deployable app, App Router, API routes on the same origin |
 | Topology | **Monolith**, not microservices | One person, one public URL, minimal ops |
 | Styling | **Dark studio UI**, own typography and accent | Assignment is a usable studio, not a lime marketing clone |
-| Auth | **None** for visitors | Strangers must complete the demo loop without signing up |
-| Data store | **No database** | Library and recipes live in the **browser** (e.g. `localStorage` / IndexedDB) |
+| Auth | **None required** for visitors; **optional Supabase email** for cloud library | Demo loop stays open; sign-in is opt-in |
+| Data store | **Guest:** browser `localStorage`; **signed-in:** Supabase Postgres (`generations` + RLS) | Dual-mode library preserves reviewer path; see `docs/SUPABASE.md` |
 | Server role | **Thin BFF** only | Hide Higgsfield `KEY_ID:KEY_SECRET`, submit jobs, poll `status_url`, optional file upload to presigned URLs |
 | Client → Higgsfield | **Never** | Browser never holds the secret or calls `api.higgsfield.ai` directly |
 | Public API | **REST under `/api`**, no GraphQL, no versioned external API | Internal routes for our UI only |

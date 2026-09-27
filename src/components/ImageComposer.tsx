@@ -7,6 +7,7 @@ import { idleStudioImageJobState } from "@/components/StudioCreateImageResult";
 import { MotionReveal } from "@/components/MotionReveal";
 import { ShimmerBlock } from "@/components/ShimmerBlock";
 import { useHiggsfieldApiKey } from "@/components/HiggsfieldApiKeyProvider";
+import { useStudioGenerationAuth } from "@/hooks/use-studio-generation-auth";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import type {
   DemoImageJobResponse,
@@ -16,6 +17,7 @@ import type {
 import { userFacingHiggsfieldErrorMessage } from "@/lib/higgsfield-client";
 import { runSoulV2ImageInBrowser } from "@/lib/soul-image-browser";
 import { createLibraryGeneration } from "@/lib/studio-library";
+import { refreshAuthedStudioLibrary } from "@/lib/studio-library-client";
 import { type ImageComposerInitialValues } from "@/lib/studio-recipe";
 
 const SOUL_V2_MODEL_ID = "soul-v2-standard";
@@ -55,7 +57,9 @@ export function ImageComposer({ initialValues }: ImageComposerProps) {
   const [jobError, setJobError] = useState<string | null>(null);
   const [jobResult, setJobResult] = useState<ImageJobResponse | null>(null);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
-  const { items, append } = useStudioLibrary();
+  const { items, append, cloudMode, hydrated: libraryHydrated } =
+    useStudioLibrary();
+  const { ensureSignedInForGeneration } = useStudioGenerationAuth();
 
   useEffect(() => {
     setPrompt(initialValues.prompt);
@@ -81,6 +85,9 @@ export function ImageComposer({ initialValues }: ImageComposerProps) {
   }, [aspectRatio, referenceFile]);
 
   async function onFetchEstimate() {
+    if (!ensureSignedInForGeneration()) {
+      return;
+    }
     const trimmed = prompt.trim();
     if (!trimmed) {
       setEstimateError("Add a prompt before estimating cost.");
@@ -130,6 +137,9 @@ export function ImageComposer({ initialValues }: ImageComposerProps) {
   }
 
   const onGenerate = useCallback(async () => {
+    if (!ensureSignedInForGeneration()) {
+      return;
+    }
     const trimmed = prompt.trim();
     if (!trimmed) {
       setJobError("Add a prompt before generating.");
@@ -143,6 +153,10 @@ export function ImageComposer({ initialValues }: ImageComposerProps) {
     setSavedToLibrary(false);
 
     try {
+      if (cloudMode && !libraryHydrated) {
+        await refreshAuthedStudioLibrary();
+      }
+
       let result: ImageJobResponse;
 
       if (isSoulModel) {
@@ -210,7 +224,7 @@ export function ImageComposer({ initialValues }: ImageComposerProps) {
           referenceFileName: reference?.fileName,
         },
       });
-      const saved = append(generation);
+      const saved = await append(generation);
       setSavedToLibrary(saved);
     } catch (error) {
       setJobPhase("error");
@@ -229,6 +243,9 @@ export function ImageComposer({ initialValues }: ImageComposerProps) {
     prompt,
     reference,
     referenceFile,
+    cloudMode,
+    ensureSignedInForGeneration,
+    libraryHydrated,
     libraryOutputUrls,
   ]);
 

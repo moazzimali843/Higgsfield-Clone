@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useStudioCreate } from "@/components/StudioCreateProvider";
 import { idleStudioVideoJobState } from "@/components/StudioCreateVideoResult";
 import { MotionReveal } from "@/components/MotionReveal";
 import { useHiggsfieldApiKey } from "@/components/HiggsfieldApiKeyProvider";
+import { useStudioGenerationAuth } from "@/hooks/use-studio-generation-auth";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { userFacingHiggsfieldErrorMessage } from "@/lib/higgsfield-client";
 import type { DemoVideoJobResponse, VideoJobResponse } from "@/lib/generation-types";
 import { runSeedanceVideoInBrowser } from "@/lib/seedance-video-browser";
 import { createLibraryGeneration } from "@/lib/studio-library";
+import { refreshAuthedStudioLibrary } from "@/lib/studio-library-client";
 import {
   isSeedanceVideoModelId,
   SEEDANCE_VIDEO_MODEL_ID,
@@ -39,7 +41,14 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
   const [jobError, setJobError] = useState<string | null>(null);
   const [jobResult, setJobResult] = useState<VideoJobResponse | null>(null);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
-  const { append } = useStudioLibrary();
+  const { items, append, cloudMode, hydrated: libraryHydrated } =
+    useStudioLibrary();
+  const { ensureSignedInForGeneration } = useStudioGenerationAuth();
+
+  const libraryOutputUrls = useMemo(
+    () => items.map((item) => item.outputUrl),
+    [items],
+  );
   const { credentials, setCredentials, apiKeyId, apiKeySecret } =
     useHiggsfieldApiKey();
 
@@ -81,6 +90,9 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
   }, [reportVideoJobState]);
 
   const onGenerate = useCallback(async () => {
+    if (!ensureSignedInForGeneration()) {
+      return;
+    }
     const trimmed = prompt.trim();
     if (!trimmed) {
       setJobError("Add a prompt before generating.");
@@ -94,6 +106,10 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
     setSavedToLibrary(false);
 
     try {
+      if (cloudMode && !libraryHydrated) {
+        await refreshAuthedStudioLibrary();
+      }
+
       let result: VideoJobResponse;
 
       if (isSeedanceModel) {
@@ -126,6 +142,7 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
             prompt: trimmed,
             aspectRatio,
             modelId,
+            excludeOutputUrls: libraryOutputUrls,
           }),
         });
 
@@ -160,7 +177,7 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
           referenceFileName: reference?.fileName,
         },
       });
-      const saved = append(generation);
+      const saved = await append(generation);
       setSavedToLibrary(saved);
     } catch (error) {
       setJobPhase("error");
@@ -169,12 +186,16 @@ export function VideoComposer({ initialValues }: VideoComposerProps) {
       setJobError(userFacingHiggsfieldErrorMessage(raw));
     }
   }, [
+    cloudMode,
     credentials,
     apiKeyId,
     apiKeySecret,
     append,
     aspectRatio,
+    ensureSignedInForGeneration,
     isSeedanceModel,
+    libraryHydrated,
+    libraryOutputUrls,
     modelId,
     prompt,
     reference,

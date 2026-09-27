@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseExcludeOutputUrls } from "@/lib/demo-image-job";
 import { submitSoulV2ImageJob } from "@/lib/higgsfield-image-job";
+import { requireStudioUserForGeneration } from "@/lib/supabase/require-studio-user";
 import { REFERENCE_IMAGE_MAX_BYTES, REFERENCE_IMAGE_MAX_LABEL } from "@/lib/reference-image";
 import { readHiggsfieldServerEnv } from "@/lib/higgsfield-client";
 import {
@@ -13,6 +14,11 @@ import {
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const auth = await requireStudioUserForGeneration();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   const contentType = request.headers.get("content-type") ?? "";
 
   if (contentType.includes("multipart/form-data")) {

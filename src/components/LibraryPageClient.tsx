@@ -115,10 +115,21 @@ function LibraryGenerationCard({
 
 export function LibraryPageClient() {
   const hydrated = useClientHydrated();
-  const { items: savedItems } = useStudioLibrary();
+  const {
+    items: savedItems,
+    loading: cloudLoading,
+    error: cloudError,
+    hydrated: cloudHydrated,
+    cloudMode,
+  } = useStudioLibrary();
+  const showcaseExamples = useMemo(
+    () => mergeSavedLibraryWithShowcase([]),
+    [],
+  );
   const items = useMemo(
-    () => mergeSavedLibraryWithShowcase(savedItems),
-    [savedItems],
+    () =>
+      cloudMode ? savedItems : mergeSavedLibraryWithShowcase(savedItems),
+    [savedItems, cloudMode],
   );
   const columnCount = useMasonryColumnCount();
   const columns = useMemo(
@@ -129,18 +140,24 @@ export function LibraryPageClient() {
     [items, columnCount],
   );
 
-  if (!hydrated) {
+  if (!hydrated || !cloudHydrated || cloudLoading) {
     return (
       <div
         className="studio-card p-10 text-center text-sm text-studio-muted"
         aria-busy="true"
       >
-        Loading your browser library…
+        {cloudMode ? "Loading your cloud library…" : "Loading library…"}
       </div>
     );
   }
 
   return (
+    <div className="flex flex-col gap-10">
+      {cloudError ? (
+        <p className="studio-card border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {cloudError}
+        </p>
+      ) : null}
     <div className="flex items-start gap-6">
       {columns.map((columnItems, columnIndex) => (
         <ul key={columnIndex} className="flex min-w-0 flex-1 flex-col gap-6">
@@ -156,6 +173,29 @@ export function LibraryPageClient() {
           ))}
         </ul>
       ))}
+    </div>
+    {cloudMode && showcaseExamples.length > 0 ? (
+      <section className="flex flex-col gap-4">
+        <h2 className="text-sm font-medium text-studio-muted">Examples</h2>
+        <div className="flex items-start gap-6">
+          {distributeToShortestColumns(
+            showcaseExamples.slice(0, 6),
+            Math.min(columnCount, 3),
+            (item) => estimatedLibraryCardHeight(item.recipe),
+          ).map((columnItems, columnIndex) => (
+            <ul key={`ex-${columnIndex}`} className="flex min-w-0 flex-1 flex-col gap-6">
+              {columnItems.map((item, itemIndex) => (
+                <LibraryGenerationCard
+                  key={item.id}
+                  item={item}
+                  revealDelay={Math.min(columnIndex * 40 + itemIndex * 70, 420)}
+                />
+              ))}
+            </ul>
+          ))}
+        </div>
+      </section>
+    ) : null}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { SidebarKeyIcon } from "@/components/StudioSidebarIcons";
+import { SidebarKeyIcon, SidebarTrashIcon } from "@/components/StudioSidebarIcons";
 import { useHiggsfieldApiKey } from "@/components/HiggsfieldApiKeyProvider";
 
 type HiggsfieldApiKeyPanelProps = {
@@ -40,11 +40,13 @@ export function HiggsfieldApiKeyPanel({
   const {
     credentials,
     setCredentials,
-    saveToSession,
-    clearSession,
-    sessionError,
+    saveCredentials,
+    deleteCredentials,
+    persistError,
     isConnected,
     hydrated,
+    saving,
+    deleting,
   } = useHiggsfieldApiKey();
 
   const isSidebar = variant === "sidebar";
@@ -129,7 +131,7 @@ export function HiggsfieldApiKeyPanel({
         >
           <h2 className="text-sm font-medium text-studio-fg">Higgsfield API Key</h2>
 
-          <div className="mt-3">
+          <div className="mt-3 flex gap-2">
             <input
               id={`${panelId}-creds`}
               type="password"
@@ -138,30 +140,38 @@ export function HiggsfieldApiKeyPanel({
               placeholder="Enter API Key..."
               value={credentials}
               onChange={(e) => setCredentials(e.target.value)}
-              className="studio-input"
+              className="studio-input min-w-0 flex-1"
             />
+            {isConnected ? (
+              <button
+                type="button"
+                onClick={() => void deleteCredentials()}
+                disabled={deleting || saving}
+                className="studio-btn-icon shrink-0 p-2 text-studio-muted hover:text-red-600 disabled:opacity-50"
+                aria-label="Delete API key"
+                title="Delete API key"
+              >
+                <SidebarTrashIcon className="text-current" />
+              </button>
+            ) : null}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
+              disabled={saving || deleting}
               onClick={() => {
-                if (saveToSession()) setOpen(false);
+                void saveCredentials().then((ok) => {
+                  if (ok) setOpen(false);
+                });
               }}
               className="studio-btn-primary studio-btn-sm"
             >
-              Save for session
-            </button>
-            <button
-              type="button"
-              onClick={clearSession}
-              className="studio-btn-secondary studio-btn-sm"
-            >
-              Clear
+              {saving ? "Saving…" : "Save"}
             </button>
           </div>
-          {sessionError ? (
+          {persistError ? (
             <p className="studio-alert-warning-xs mt-2" role="alert">
-              {sessionError}
+              {persistError}
             </p>
           ) : null}
         </div>

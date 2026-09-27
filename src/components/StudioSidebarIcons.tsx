@@ -229,6 +229,38 @@ export function SidebarCollapseIcon({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+export function SidebarTrashIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      className={[base, className].filter(Boolean).join(" ")}
+    >
+      <path
+        d="M9.5 3.5h5l.5 2h5.5v2H3V5.5h5.5l.5-2Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 9.5v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 12v6M14 12v6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 const navIconByHref: Record<string, (props: IconProps) => ReactNode> = {
   "/": SidebarHomeIcon,
   "/image": SidebarImageIcon,

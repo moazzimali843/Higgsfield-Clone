@@ -5,14 +5,21 @@ import Image from "next/image";
 import { GenerationSourceBadge } from "@/components/GenerationSourceBadge";
 import { GenerationRecipePanel } from "@/components/GenerationRecipePanel";
 import { PreviewVideo } from "@/components/PreviewVideo";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useClientHydrated } from "@/hooks/use-client-hydrated";
 import { useStudioLibrary } from "@/hooks/use-studio-library";
 import { aspectClassForRatio } from "@/lib/aspect-ratio-ui";
+import type { LibraryGeneration } from "@/lib/generation-types";
+import {
+  isShowcaseGenerationId,
+  isValidUuid,
+} from "@/lib/generations-db";
 import {
   findLibraryGenerationById,
+  getLibraryShowcaseGenerations,
   mergeSavedLibraryWithShowcase,
 } from "@/lib/studio-library";
+import { fetchRemoteLibraryGenerationById } from "@/lib/studio-library-remote";
 
 function formatCreatedAt(iso: string): string {
   try {
@@ -33,14 +40,46 @@ export function LibraryGenerationDetailClient({
   generationId,
 }: LibraryGenerationDetailClientProps) {
   const hydrated = useClientHydrated();
-  const { items: savedItems } = useStudioLibrary();
-  const displayItems = useMemo(
-    () => mergeSavedLibraryWithShowcase(savedItems),
-    [savedItems],
-  );
-  const generation = hydrated
-    ? findLibraryGenerationById(displayItems, generationId)
-    : undefined;
+  const { items: savedItems, cloudMode } = useStudioLibrary();
+  const [remoteItem, setRemoteItem] = useState<LibraryGeneration | null>(null);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+
+  const localGeneration = useMemo(() => {
+    if (isShowcaseGenerationId(generationId)) {
+      return findLibraryGenerationById(
+        getLibraryShowcaseGenerations(),
+        generationId,
+      );
+    }
+    if (cloudMode) {
+      return findLibraryGenerationById(savedItems, generationId);
+    }
+    return findLibraryGenerationById(
+      mergeSavedLibraryWithShowcase(savedItems),
+      generationId,
+    );
+  }, [generationId, savedItems, cloudMode]);
+
+  useEffect(() => {
+    if (!cloudMode || localGeneration || !isValidUuid(generationId)) {
+      setRemoteItem(null);
+      setRemoteLoading(false);
+      return;
+    }
+    let active = true;
+    setRemoteLoading(true);
+    void fetchRemoteLibraryGenerationById(generationId).then((item) => {
+      if (active) {
+        setRemoteItem(item);
+        setRemoteLoading(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [generationId, localGeneration, cloudMode]);
+
+  const generation = localGeneration ?? remoteItem ?? undefined;
 
   if (!hydrated) {
     return (
@@ -48,7 +87,18 @@ export function LibraryGenerationDetailClient({
         className="studio-card p-10 text-center text-sm text-studio-muted"
         aria-busy="true"
       >
-        Loading recipe from this browser…
+        Loading recipe…
+      </div>
+    );
+  }
+
+  if (remoteLoading) {
+    return (
+      <div
+        className="studio-card p-10 text-center text-sm text-studio-muted"
+        aria-busy="true"
+      >
+        Loading recipe…
       </div>
     );
   }

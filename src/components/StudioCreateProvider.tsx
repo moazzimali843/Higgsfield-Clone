@@ -38,6 +38,7 @@ import {
   validateReferenceImageFile,
   type ReferenceImageAttachment,
 } from "@/lib/reference-image";
+import { useStudioGenerationAuth } from "@/hooks/use-studio-generation-auth";
 
 function defaultAspectForMode(mode: CreateMode): AspectRatio {
   return mode === "video" ? "16:9" : "1:1";
@@ -108,8 +109,11 @@ function StudioCreateBar() {
   const isLibrary =
     pathname !== null &&
     (pathname === "/library" || pathname.startsWith("/library/"));
+  const isLogin =
+    pathname === "/login" ||
+    (pathname !== null && pathname.startsWith("/login/"));
 
-  if (isComingSoon || isLibrary) {
+  if (isComingSoon || isLibrary || isLogin) {
     return null;
   }
   const imageCreatePending = isImageComposer && imageJob.phase === "pending";
@@ -174,6 +178,7 @@ export function StudioCreateProvider({ children }: { children: ReactNode }) {
 
   const imageGenerateRef = useRef<GenerateHandler>(null);
   const videoGenerateRef = useRef<GenerateHandler>(null);
+  const { ensureSignedInForGeneration } = useStudioGenerationAuth();
 
   const setMode = useCallback((next: CreateMode) => {
     setModeState(next);
@@ -279,10 +284,12 @@ export function StudioCreateProvider({ children }: { children: ReactNode }) {
     if (!isCreatePromptValid(prompt)) return;
 
     if (mode === "image" && pathname === "/image" && imageGenerateRef.current) {
+      if (!ensureSignedInForGeneration()) return;
       imageGenerateRef.current();
       return;
     }
     if (mode === "video" && pathname === "/video" && videoGenerateRef.current) {
+      if (!ensureSignedInForGeneration()) return;
       videoGenerateRef.current();
       return;
     }
@@ -294,8 +301,18 @@ export function StudioCreateProvider({ children }: { children: ReactNode }) {
       aspectRatio,
       autorun: mode === "image",
     });
-    if (href) router.push(href);
-  }, [aspectRatio, mode, modelId, pathname, prompt, router]);
+    if (!href) return;
+    if (!ensureSignedInForGeneration(href)) return;
+    router.push(href);
+  }, [
+    aspectRatio,
+    ensureSignedInForGeneration,
+    mode,
+    modelId,
+    pathname,
+    prompt,
+    router,
+  ]);
 
   const value = useMemo(
     (): StudioCreateContextValue => ({
