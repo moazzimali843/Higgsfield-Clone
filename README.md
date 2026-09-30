@@ -24,7 +24,7 @@ Your **library** is stored in this browser (`localStorage`) when you are not sig
 
 ## Install and run
 
-Clone the repository, install dependencies, and start the development server:
+Clone the repo, install dependencies, and start the development server:
 
 ```bash
 git clone https://github.com/moazzimali843/Higgsfield-Clone.git
